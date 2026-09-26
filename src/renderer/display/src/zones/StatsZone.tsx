@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactElement } from 'react'
+import { useEffect, useState, type CSSProperties, type ReactElement } from 'react'
 import type { Telemetry } from '@shared/types'
 import { getMetricDef } from '@shared/telemetryMetrics'
 
@@ -20,12 +20,22 @@ function BarRow({
   const pct = value == null ? 0 : Math.min(100, Math.max(0, (value / def.max) * 100))
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(8px, 2cqmin, 24px)' }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        gap: 'clamp(4px, 6cqh, 20px)',
+        minWidth: 0,
+        minHeight: 0,
+        containerType: 'size'
+      }}
+    >
       <div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
-          fontSize: 'clamp(20px, 10cqmin, 72px)',
+          fontSize: 'clamp(14px, 38cqh, 96px)',
           color: '#ccc'
         }}
       >
@@ -34,7 +44,7 @@ function BarRow({
       </div>
       <div
         style={{
-          height: 'clamp(10px, 5cqmin, 36px)',
+          height: 'clamp(6px, 14cqh, 36px)',
           borderRadius: 999,
           background: 'rgba(255,255,255,0.1)',
           overflow: 'hidden'
@@ -126,8 +136,12 @@ function CompactRow({
     <div
       style={{
         display: 'flex',
+        alignItems: 'center',
         justifyContent: 'space-between',
-        fontSize: 'clamp(20px, 10cqmin, 72px)'
+        fontSize: 'clamp(14px, 46cqh, 96px)',
+        minWidth: 0,
+        minHeight: 0,
+        containerType: 'size'
       }}
     >
       <span style={{ color: '#ccc' }}>{def.label}</span>
@@ -148,22 +162,33 @@ export function StatsZone({
   useEffect(() => window.display.onTelemetry(setTelemetry), [])
 
   const Row = style === 'gauges' ? GaugeRow : style === 'compact' ? CompactRow : BarRow
-  const listStyle =
-    style === 'gauges'
-      ? {
-          display: 'flex' as const,
-          flexDirection: 'row' as const,
-          flexWrap: 'wrap' as const,
-          gap: 'clamp(16px, 6cqmin, 56px)',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }
-      : {
-          display: 'flex' as const,
-          flexDirection: 'column' as const,
-          gap: 'clamp(10px, 4cqmin, 40px)',
-          width: '100%'
-        }
+
+  let listStyle: CSSProperties
+  if (style === 'gauges') {
+    listStyle = {
+      display: 'flex',
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 'clamp(16px, 6cqmin, 56px)',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }
+  } else {
+    // bars/compact stack vertically with no wrapping, so a long widget list
+    // would just keep growing taller than the zone. Split into columns of
+    // ~4 rows each so it always fits instead of overflowing top and bottom.
+    const columns = Math.max(1, Math.ceil(widgets.length / 4))
+    const rows = Math.max(1, Math.ceil(widgets.length / columns))
+    listStyle = {
+      display: 'grid',
+      gridTemplateColumns: `repeat(${columns}, 1fr)`,
+      gridTemplateRows: `repeat(${rows}, 1fr)`,
+      gridAutoFlow: 'column',
+      gap: 'clamp(8px, 2cqmin, 32px)',
+      width: '100%',
+      height: '100%'
+    }
+  }
 
   return (
     <div
