@@ -23,7 +23,9 @@ export function createControlWindow(config: AppConfig): BrowserWindow {
     }
   })
 
-  win.once('ready-to-show', () => win.show())
+  win.once('ready-to-show', () => {
+    if (!config.app.startMinimized) win.show()
+  })
 
   win.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
