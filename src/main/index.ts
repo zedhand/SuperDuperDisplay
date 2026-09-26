@@ -1,4 +1,5 @@
 import { app, BrowserWindow, screen } from 'electron'
+import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { getConfig, setConfig } from './store'
 import { createControlWindow } from './windows/controlWindow'
@@ -16,6 +17,7 @@ import { FolderSyncManager } from './media/folderSync'
 import { TelemetryService } from './telemetry'
 import { TriggerEngine } from './triggerEngine'
 import { PowerManager } from './power'
+import { TrayManager } from './tray'
 import { registerWebviewHardening } from './webSecurity'
 import { IpcChannel } from '@shared/ipc'
 
@@ -26,6 +28,7 @@ if (!gotLock) {
   app.quit()
 } else {
   let controlWin: BrowserWindow | null = null
+  let isQuitting = false
 
   app.on('second-instance', () => {
     if (controlWin) {
@@ -47,6 +50,7 @@ if (!gotLock) {
     if (!config.controlWindow.bounds) {
       config.controlWindow.bounds = getDefaultControlWindowBounds(listDisplays())
     }
+    app.setLoginItemSettings({ openAtLogin: config.app.launchAtLogin })
 
     controlWin = createControlWindow(config)
     const initialBounds = getSimulatorBounds(listDisplays(), config.display.match ?? undefined)
@@ -80,7 +84,30 @@ if (!gotLock) {
     })
     telemetryService.start(config.telemetry)
 
-    ctx = { controlWin, displayWin, displayManager, folderSyncManager, telemetryService }
+    const trayManager = new TrayManager(
+      join(__dirname, '../../resources/icon.png'),
+      controlWin,
+      (presetId) => broadcastConfig(ctx, setConfig({ activePresetId: presetId })),
+      (mode) => {
+        const next = setConfig({ display: { ...getConfig().display, mode } })
+        displayManager.applyMode(mode)
+        broadcastConfig(ctx, next)
+      },
+      () => {
+        isQuitting = true
+        app.quit()
+      }
+    )
+    trayManager.update(config)
+
+    ctx = {
+      controlWin,
+      displayWin,
+      displayManager,
+      folderSyncManager,
+      telemetryService,
+      trayManager
+    }
     registerIpcHandlers(ctx)
 
     const powerManager = new PowerManager(getConfig, (mode) => {
@@ -105,6 +132,12 @@ if (!gotLock) {
 
     controlWin.on('resized', () => persistControlWindowBounds(controlWin!))
     controlWin.on('moved', () => persistControlWindowBounds(controlWin!))
+    controlWin.on('close', (event) => {
+      if (!isQuitting) {
+        event.preventDefault()
+        controlWin?.hide()
+      }
+    })
 
     const retarget = (): void => {
       displayManager.retarget()
@@ -121,9 +154,11 @@ if (!gotLock) {
     })
 
     app.on('before-quit', () => {
+      isQuitting = true
       folderSyncManager.stopAll()
       telemetryService.stop()
       powerManager.stopIdleWatch()
+      trayManager.destroy()
     })
   })
 

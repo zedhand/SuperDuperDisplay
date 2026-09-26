@@ -8,6 +8,7 @@ import { getConfig, setConfig } from './store'
 import type { DisplayManager } from './displayManager'
 import type { FolderSyncManager } from './media/folderSync'
 import type { TelemetryService } from './telemetry'
+import type { TrayManager } from './tray'
 
 export interface IpcContext {
   controlWin: BrowserWindow
@@ -15,12 +16,14 @@ export interface IpcContext {
   displayManager: DisplayManager
   folderSyncManager: FolderSyncManager
   telemetryService: TelemetryService
+  trayManager: TrayManager
 }
 
 export function broadcastConfig(ctx: IpcContext, config: AppConfig): void {
   ctx.controlWin.webContents.send(IpcChannel.ConfigChanged, config)
   ctx.displayWin.webContents.send(IpcChannel.ConfigChanged, config)
   ctx.folderSyncManager.setActiveFolders(getActiveMediaFolders(config))
+  ctx.trayManager.update(config)
 }
 
 export function broadcastDisplays(ctx: IpcContext): void {
@@ -41,6 +44,9 @@ export function registerIpcHandlers(ctx: IpcContext): void {
     }
     if (patch.telemetry) {
       ctx.telemetryService.start(next.telemetry)
+    }
+    if (patch.app) {
+      app.setLoginItemSettings({ openAtLogin: next.app.launchAtLogin })
     }
     broadcastConfig(ctx, next)
     return next
