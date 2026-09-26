@@ -180,7 +180,7 @@ export const defaultConfig: AppConfig = {
         zone0: { type: 'blank' },
         zone1: {
           type: 'stats',
-          widgets: ['cpuTemp', 'gpuTemp', 'cpuLoad', 'gpuLoad'],
+          widgets: ['cpuTemp', 'cpuLoad', 'gpuTemp', 'gpuLoad'],
           style: 'bars'
         }
       }
@@ -196,10 +196,10 @@ export const defaultConfig: AppConfig = {
           type: 'stats',
           widgets: [
             'cpuTemp',
-            'gpuTemp',
             'cpuLoad',
-            'gpuLoad',
             'cpuClockMHz',
+            'gpuTemp',
+            'gpuLoad',
             'gpuClockMHz',
             'vramUsedPct',
             'ramUsedPct'

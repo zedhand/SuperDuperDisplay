@@ -20,12 +20,12 @@ function BarRow({
   const pct = value == null ? 0 : Math.min(100, Math.max(0, (value / def.max) * 100))
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(4px, 1cqmin, 12px)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(8px, 2cqmin, 24px)' }}>
       <div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
-          fontSize: 'clamp(14px, 4.5cqmin, 44px)',
+          fontSize: 'clamp(20px, 10cqmin, 72px)',
           color: '#ccc'
         }}
       >
@@ -34,7 +34,7 @@ function BarRow({
       </div>
       <div
         style={{
-          height: 'clamp(6px, 1.6cqmin, 20px)',
+          height: 'clamp(10px, 5cqmin, 36px)',
           borderRadius: 999,
           background: 'rgba(255,255,255,0.1)',
           overflow: 'hidden'
@@ -74,12 +74,12 @@ function GaugeRow({
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: 'clamp(4px, 1cqmin, 12px)'
+        gap: 'clamp(8px, 2cqmin, 24px)'
       }}
     >
       <svg
         viewBox="0 0 72 72"
-        style={{ width: 'clamp(72px, 20cqmin, 220px)', height: 'clamp(72px, 20cqmin, 220px)' }}
+        style={{ width: 'clamp(100px, 42cqmin, 320px)', height: 'clamp(100px, 42cqmin, 320px)' }}
       >
         <circle
           cx={36}
@@ -106,7 +106,7 @@ function GaugeRow({
           {value == null ? '—' : Math.round(value)}
         </text>
       </svg>
-      <span style={{ fontSize: 'clamp(12px, 3.5cqmin, 32px)', color: '#ccc' }}>{def.label}</span>
+      <span style={{ fontSize: 'clamp(18px, 7.5cqmin, 56px)', color: '#ccc' }}>{def.label}</span>
     </div>
   )
 }
@@ -127,7 +127,7 @@ function CompactRow({
       style={{
         display: 'flex',
         justifyContent: 'space-between',
-        fontSize: 'clamp(14px, 4.5cqmin, 44px)'
+        fontSize: 'clamp(20px, 10cqmin, 72px)'
       }}
     >
       <span style={{ color: '#ccc' }}>{def.label}</span>
@@ -154,14 +154,14 @@ export function StatsZone({
           display: 'flex' as const,
           flexDirection: 'row' as const,
           flexWrap: 'wrap' as const,
-          gap: 'clamp(12px, 3cqmin, 40px)',
+          gap: 'clamp(16px, 6cqmin, 56px)',
           alignItems: 'center',
           justifyContent: 'center'
         }
       : {
           display: 'flex' as const,
           flexDirection: 'column' as const,
-          gap: 'clamp(8px, 2cqmin, 28px)',
+          gap: 'clamp(10px, 4cqmin, 40px)',
           width: '100%'
         }
 
@@ -171,7 +171,7 @@ export function StatsZone({
         width: '100%',
         height: '100%',
         boxSizing: 'border-box',
-        padding: 'clamp(12px, 3cqmin, 48px)',
+        padding: 'clamp(16px, 6cqmin, 64px)',
         background: '#0d0d10',
         fontFamily: 'Segoe UI, system-ui, sans-serif',
         display: 'flex',

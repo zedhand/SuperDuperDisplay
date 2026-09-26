@@ -9,11 +9,12 @@ export interface MetricDef {
   getValue: (t: Telemetry) => number | null
 }
 
+// Ordered so callers that just render METRICS in array order (the Scenes
+// editor's widget picker) group CPU / GPU / memory metrics together rather
+// than interleaving them.
 export const METRICS: MetricDef[] = [
   { key: 'cpuTemp', label: 'CPU Temp', unit: '°C', max: 95, getValue: (t) => t.cpuTemp },
-  { key: 'gpuTemp', label: 'GPU Temp', unit: '°C', max: 95, getValue: (t) => t.gpuTemp },
   { key: 'cpuLoad', label: 'CPU Load', unit: '%', max: 100, getValue: (t) => t.cpuLoad },
-  { key: 'gpuLoad', label: 'GPU Load', unit: '%', max: 100, getValue: (t) => t.gpuLoad },
   {
     key: 'cpuClockMHz',
     label: 'CPU Clock',
@@ -21,6 +22,8 @@ export const METRICS: MetricDef[] = [
     max: 6000,
     getValue: (t) => t.cpuClockMHz
   },
+  { key: 'gpuTemp', label: 'GPU Temp', unit: '°C', max: 95, getValue: (t) => t.gpuTemp },
+  { key: 'gpuLoad', label: 'GPU Load', unit: '%', max: 100, getValue: (t) => t.gpuLoad },
   {
     key: 'gpuClockMHz',
     label: 'GPU Clock',
