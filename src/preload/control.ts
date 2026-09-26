@@ -1,6 +1,13 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { IpcChannel } from '@shared/ipc'
-import type { AppConfig, DisplayInfo, DisplayMatch, DisplayMode, Rotation } from '@shared/types'
+import type {
+  AppConfig,
+  DisplayInfo,
+  DisplayMatch,
+  DisplayMode,
+  Rotation,
+  Telemetry
+} from '@shared/types'
 
 const controlApi = {
   config: {
@@ -37,6 +44,14 @@ const controlApi = {
   media: {
     pickFile: (): Promise<string | null> => ipcRenderer.invoke(IpcChannel.MediaPickFile),
     pickFolder: (): Promise<string | null> => ipcRenderer.invoke(IpcChannel.MediaPickFolder)
+  },
+  telemetry: {
+    onTick: (cb: (telemetry: Telemetry) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, telemetry: Telemetry): void =>
+        cb(telemetry)
+      ipcRenderer.on(IpcChannel.TelemetryTick, listener)
+      return () => ipcRenderer.removeListener(IpcChannel.TelemetryTick, listener)
+    }
   },
   debug: {
     captureDisplay: (): Promise<{ filePath: string }> =>
