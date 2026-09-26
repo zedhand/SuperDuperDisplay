@@ -286,6 +286,58 @@ same CDP-screenshot loop against the real installed build:
 - RTSP camera path not tested this round (no RTSP camera available on
   this network) — code-reviewed only.
 
+### YouTube — session 2, asked to "figure it out": still unresolved
+
+User asked to actually fix YouTube (not just document the limitation).
+Found and ruled out two more real hypotheses before running low on
+context — this needs to resume from here, not from scratch:
+
+- **`navigator.userAgent` literally contains `Electron/39.8.10`**
+  (full string logged via CDP:
+  `...minidisplay/1.0.0 Chrome/142.0.7444.265 Electron/39.8.10
+  Safari/537.36`) — a textbook anti-bot red flag. Tested overriding
+  it to a clean desktop Chrome UA (no Electron/app name) via CDP
+  `Network.setUserAgentOverride`, combined with the existing
+  Referer/origin fix. **Still error 152-4.** Ruled out: UA string
+  alone is not the (sole) blocker.
+- **Hypothesis: CDP itself was the confound.** Nearly every YouTube
+  test this whole investigation (both sessions) was driven through
+  `--remote-debugging-port` + active CDP commands — which can set
+  `navigator.webdriver = true` and other automation flags that
+  anti-bot detection specifically looks for, meaning every prior
+  152-4 result might have been an artifact of *how it was tested*,
+  not real end-user behavior. Tested this directly: launched with
+  **no debug port at all**, waited for a real, undriven page load,
+  and read the result via a native `PrintWindow` screenshot (zero CDP
+  involvement, same technique used elsewhere in this file to verify
+  the production build without disturbing it). **Still error 152-4,
+  identical failure.** Ruled out: this is not a CDP/automation-
+  detection artifact — it fails the same way for a completely normal,
+  undebugged launch.
+
+**Where this leaves it:** two independent, high-probability hypotheses
+have both been directly tested and ruled out (not just reasoned
+about) on top of the Referer/origin fix already in place. What's left
+untested: the actual documented working workaround (serve the embed
+page from a real http(s) origin via a proxy/local server — note this
+is *not* the same as "any non-file:// origin", since dev mode's
+`http://localhost:5173` was already tried this session too and still
+failed 152-4, so a bare local server likely won't be enough either;
+the workaround specifically implies a real, publicly-routable domain).
+That's a genuinely bigger architecture change, not a quick fix, and
+hasn't been attempted. **Next session: either scope and build that
+proxy approach if it's worth the investment, or tell the user
+directly that YouTube embedding is very likely not fixable within
+Electron's constraints without it, rather than continuing to
+hypothesize.**
+
+Housekeeping for next session: the live config on this machine
+currently has `full-bleed-loop`'s zone0 set to the YouTube zone
+(broken, mid-test) and `activePresetId: full-bleed-loop` — not a
+deliberate end state, just where testing stopped. Worth resetting to
+something sensible (e.g. back to `stats-only`) before/instead of
+further YouTube work.
+
 ### Next up
 
 The "first test release" milestone is fully reached: a real
