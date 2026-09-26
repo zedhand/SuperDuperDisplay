@@ -16,3 +16,4 @@ graphify-out/
 *.tsbuildinfo
 .vite/
 .eslintcache
+.test-assets/

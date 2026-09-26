@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactElement } from 'react'
 import type { AppConfig } from '@shared/types'
-import { rotatedContentSize, rotationCssTransform } from '@shared/layout'
+import { resolveZones, rotatedContentSize, rotationCssTransform } from '@shared/layout'
+import { ZoneRenderer } from './zones/ZoneRenderer'
 
 export function Stage(): ReactElement | null {
   const [config, setConfig] = useState<AppConfig | null>(null)
@@ -15,6 +16,8 @@ export function Stage(): ReactElement | null {
   const transform = rotationCssTransform(config.display.rotation)
 
   const activePreset = config.presets.find((p) => p.id === config.activePresetId)
+  const layout = activePreset && config.layouts.find((l) => l.id === activePreset.layoutId)
+  const zones = activePreset && layout ? resolveZones(layout, activePreset.zones) : []
 
   return (
     <div
@@ -24,25 +27,26 @@ export function Stage(): ReactElement | null {
         left: '50%',
         width: content.width,
         height: content.height,
-        transform: `translate(-50%, -50%) ${transform}`,
-        background: config.display.mode === 'black' ? '#000' : '#111',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: '#666',
-        fontFamily: 'Segoe UI, system-ui, sans-serif',
-        fontSize: Math.max(12, Math.min(content.width, content.height) * 0.04)
+        transform: `translate(-50%, -50%) ${transform}`.trim(),
+        background: '#000',
+        overflow: 'hidden'
       }}
     >
-      {config.display.mode === 'live' && (
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ color: '#e879f9', fontWeight: 600 }}>MiniDisplay</div>
-          <div style={{ marginTop: 4, fontSize: '0.7em' }}>{activePreset?.name ?? 'No preset'}</div>
-          <div style={{ marginTop: 8, fontSize: '0.6em', opacity: 0.6 }}>
-            {content.width}×{content.height} · rotation {config.display.rotation}°
+      {config.display.mode === 'live' &&
+        zones.map((zone) => (
+          <div
+            key={zone.zoneId}
+            style={{
+              position: 'absolute',
+              left: `${zone.rect.xPct * 100}%`,
+              top: `${zone.rect.yPct * 100}%`,
+              width: `${zone.rect.wPct * 100}%`,
+              height: `${zone.rect.hPct * 100}%`
+            }}
+          >
+            <ZoneRenderer zone={zone} />
           </div>
-        </div>
-      )}
+        ))}
     </div>
   )
 }
