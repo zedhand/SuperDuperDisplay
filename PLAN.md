@@ -224,6 +224,68 @@ installed it for real (`/S` silent install, to
     all four combinations (bars/compact × narrow 30% zone/full-bleed
     zone) via CDP screenshot on the real installed build.
 
+### Broader dogfooding pass — non-stats zones and control pages
+
+With the stats zone settled, proactively exercised the parts of the
+app nobody had actually looked at on real hardware yet, using the
+same CDP-screenshot loop against the real installed build:
+
+- **Media zone** (`cover` and `contain`+blur fit modes) — correct,
+  no changes needed.
+- **Folder playlist** — confirmed it actually rotates on its own
+  timer (screenshotted twice, image changed).
+- **Web zone** — correct, a real external site rendered via the
+  `<webview>`.
+- **Camera zone** — correct; happens to be a real Elgato capture
+  device on this machine, showed its live "no signal" idle frame
+  (nothing plugged into its HDMI in — expected, not a MiniDisplay
+  bug).
+- **Layout editor page — found and fixed a real bug** (`132639b`):
+  layouts are shared by id across presets (the default `single`
+  layout backs both "Full-bleed loop" and "Black"), but `Layout.tsx`
+  mutated the active preset's layout in place with no awareness of
+  that sharing. Triggered it directly while testing: clicking "Split
+  left / right" to preview a split silently turned the shared
+  `single` layout into a 70/30 split, which also — completely
+  incidentally — cut the unrelated active camera zone down to 70% of
+  the screen. That's what got reported as the camera's "aspect ratio"
+  being wrong; the video's own pixel aspect ratio was never actually
+  distorted (`object-fit: cover` was working correctly throughout),
+  the zone it was rendering into had just been resized out from under
+  it via a completely different page. Fixed with clone-on-write: the
+  page now clones the layout (new id, distinguishing name) and
+  repoints only the active preset at the clone the moment it detects
+  another preset sharing the same layout id, so editing a layout can
+  now only ever affect the preset being looked at. Verified the fix
+  directly: repeated the exact same click, confirmed `single` stayed
+  `split:"single"` and only `full-bleed-loop` got repointed to a new
+  clone.
+- **YouTube zone — real bug found, partially fixed, real residual
+  limitation documented** (`732da17`): the embed iframe was served
+  with no Referer header at all, which YouTube's player rejects
+  outright (error 153) before attempting playback. Added the
+  standards-documented fix — a `session.webRequest` handler forcing
+  `Referer: https://www.youtube.com/` on embed requests, plus a
+  matching `origin=` param on the embed URL (the player checks both
+  together). This does move past error 153, but real testing (in this
+  file://-origin production build, *and* in dev mode over
+  `http://localhost` specifically to rule out file:// itself as the
+  cause) hits a further error 152-4 ("video unavailable") regardless.
+  Researched rather than kept guessing at header combinations: found
+  a matching, still-open GitHub issue for the identical error in a
+  native iOS WebView, where header-patching alone didn't fix it
+  either — this looks like YouTube's anti-embedding fingerprinting
+  rejecting non-browser Chromium contexts at a level below what
+  request headers can influence. The one documented working
+  workaround is serving the embedding page itself from a real
+  registered http(s) domain (e.g. via a proxy) rather than
+  file:///localhost, which is a materially bigger architecture change
+  than a header fix. **YouTube zone should currently be considered
+  broken/unreliable** — kept the Referer/origin fix since it's still
+  correct per YouTube's own API docs, but did not chase this further.
+- RTSP camera path not tested this round (no RTSP camera available on
+  this network) — code-reviewed only.
+
 ### Next up
 
 The "first test release" milestone is fully reached: a real
@@ -246,6 +308,11 @@ What's still open:
   practical risk on a home setup, but a 10-second manual fix if it
   matters: Windows Defender Firewall → Advanced Settings → the two
   inbound "minidisplay.exe" rules → uncheck Public.
+- **YouTube zone is broken/unreliable** (see the dogfooding entry
+  above) — real fix needs serving the app over a real http(s) origin
+  instead of file://, a materially bigger change than anything done
+  so far. Decide whether that's worth doing, or whether YouTube stays
+  a known-broken zone type for now.
 - **Dogfood it for real** — this machine is now actually configured to
   drive the physical panel (see Status above). Use it for a while
   before deciding rebrand/UI overhaul scope; some of that scope may
