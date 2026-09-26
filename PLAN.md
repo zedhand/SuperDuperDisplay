@@ -182,6 +182,30 @@ installed it for real (`/S` silent install, to
     render in CPU → GPU → memory order, and gauges went from ~96px to
     ~216px at this panel's actual 1920×480 while still comfortably
     fitting one row with margin to spare.
+  - **Third round: the fixed-size approach broke down on a narrower
+    zone** (`c70a0f2`, `6135625`, `a6d5d14`). The 70/30 preset's 30%-
+    width column (real screenshots from the user) showed the exact
+    failure mode `clamp(cqh)`-based sizing can't avoid: bars overflowed
+    top and bottom with only a few widgets in a narrow column, labels
+    wrapped mid-word ("CPU"/"Temp" on separate lines), and unbreakable
+    value strings ("3800MHz") got clipped straight past the window
+    edge — all confirmed on the real panel, not just reasoned about.
+    Rebuilt `StatsZone.tsx` around one general mechanism instead of
+    more fixed clamp tuning: a `ResizeObserver` measures the zone's
+    actual rendered pixel size, and `pickColumns()` tries every
+    possible column count for the current widget count and keeps
+    whichever one lets a cell grow largest without overflowing either
+    axis, given that style's natural cell shape (gauges ~square,
+    bars/compact wide-short). Each row became its own nested
+    container-query context sized from *that cell*, and — the second
+    fix within this pass — bars/compact font-size had to respect both
+    `cqh` and `cqw` (`min()` of the two), not just height, since a
+    label+value pair is unbreakable text that can overflow a narrow
+    column's width even at a height that "fits". Verified via CDP
+    against the real installed build on both zone shapes: the 30%
+    column (6-8 widgets, bars and gauges) and the full-bleed zone
+    (8 widgets, bars) — no overflow, no wrapping, no clipping in
+    either case.
 
 ### Next up
 
