@@ -20,12 +20,12 @@ function BarRow({
   const pct = value == null ? 0 : Math.min(100, Math.max(0, (value / def.max) * 100))
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(4px, 1cqmin, 12px)' }}>
       <div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
-          fontSize: '0.85em',
+          fontSize: 'clamp(14px, 4.5cqmin, 44px)',
           color: '#ccc'
         }}
       >
@@ -34,8 +34,8 @@ function BarRow({
       </div>
       <div
         style={{
-          height: 6,
-          borderRadius: 3,
+          height: 'clamp(6px, 1.6cqmin, 20px)',
+          borderRadius: 999,
           background: 'rgba(255,255,255,0.1)',
           overflow: 'hidden'
         }}
@@ -69,8 +69,18 @@ function GaugeRow({
   const offset = circumference * (1 - pct / 100)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-      <svg width={72} height={72} viewBox="0 0 72 72">
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 'clamp(4px, 1cqmin, 12px)'
+      }}
+    >
+      <svg
+        viewBox="0 0 72 72"
+        style={{ width: 'clamp(72px, 20cqmin, 220px)', height: 'clamp(72px, 20cqmin, 220px)' }}
+      >
         <circle
           cx={36}
           cy={36}
@@ -96,7 +106,7 @@ function GaugeRow({
           {value == null ? '—' : Math.round(value)}
         </text>
       </svg>
-      <span style={{ fontSize: '0.75em', color: '#ccc' }}>{def.label}</span>
+      <span style={{ fontSize: 'clamp(12px, 3.5cqmin, 32px)', color: '#ccc' }}>{def.label}</span>
     </div>
   )
 }
@@ -113,7 +123,13 @@ function CompactRow({
   const value = telemetry ? def.getValue(telemetry) : null
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85em' }}>
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        fontSize: 'clamp(14px, 4.5cqmin, 44px)'
+      }}
+    >
       <span style={{ color: '#ccc' }}>{def.label}</span>
       <span style={{ color: '#fff', fontWeight: 600 }}>{formatValue(value, def.unit)}</span>
     </div>
@@ -138,11 +154,16 @@ export function StatsZone({
           display: 'flex' as const,
           flexDirection: 'row' as const,
           flexWrap: 'wrap' as const,
-          gap: 16,
+          gap: 'clamp(12px, 3cqmin, 40px)',
           alignItems: 'center',
           justifyContent: 'center'
         }
-      : { display: 'flex' as const, flexDirection: 'column' as const, gap: 10, width: '100%' }
+      : {
+          display: 'flex' as const,
+          flexDirection: 'column' as const,
+          gap: 'clamp(8px, 2cqmin, 28px)',
+          width: '100%'
+        }
 
   return (
     <div
@@ -150,12 +171,13 @@ export function StatsZone({
         width: '100%',
         height: '100%',
         boxSizing: 'border-box',
-        padding: 16,
+        padding: 'clamp(12px, 3cqmin, 48px)',
         background: '#0d0d10',
         fontFamily: 'Segoe UI, system-ui, sans-serif',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        containerType: 'size'
       }}
     >
       <div style={listStyle}>
