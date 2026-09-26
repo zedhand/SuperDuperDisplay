@@ -194,7 +194,16 @@ export const defaultConfig: AppConfig = {
       zones: {
         zone0: {
           type: 'stats',
-          widgets: ['cpuTemp', 'gpuTemp', 'cpuLoad', 'gpuLoad', 'vramUsedPct', 'ramUsedPct'],
+          widgets: [
+            'cpuTemp',
+            'gpuTemp',
+            'cpuLoad',
+            'gpuLoad',
+            'cpuClockMHz',
+            'gpuClockMHz',
+            'vramUsedPct',
+            'ramUsedPct'
+          ],
           style: 'gauges'
         }
       }
