@@ -1,10 +1,12 @@
-import { useState, type ReactElement } from 'react'
+import { useEffect, useState, type ReactElement } from 'react'
 import { File, FolderOpen } from 'lucide-react'
 import type { FitMode, Preset, ZoneSource } from '@shared/types'
 import { resolveZones } from '@shared/layout'
+import { METRICS } from '@shared/telemetryMetrics'
 import { useConfigStore } from '../store/useConfigStore'
 
 const FIT_MODES: FitMode[] = ['cover', 'contain', 'stretch']
+const STATS_STYLES: Array<'bars' | 'gauges' | 'compact'> = ['bars', 'gauges', 'compact']
 
 function defaultMediaSource(source: { path?: string; folder?: string }): ZoneSource {
   return {
@@ -21,6 +23,11 @@ function defaultMediaSource(source: { path?: string; folder?: string }): ZoneSou
 const TYPE_SWITCH_OPTIONS: Array<{ label: string; make: () => ZoneSource }> = [
   { label: 'YouTube', make: () => ({ type: 'youtube', url: '' }) },
   { label: 'Web', make: () => ({ type: 'web', url: '' }) },
+  {
+    label: 'Stats',
+    make: () => ({ type: 'stats', widgets: ['cpuTemp', 'gpuTemp'], style: 'bars' })
+  },
+  { label: 'Camera', make: () => ({ type: 'camera' }) },
   { label: 'Blank', make: () => ({ type: 'blank' }) }
 ]
 
@@ -216,8 +223,20 @@ export function ScenesPage(): ReactElement {
                     />
                   )}
 
-                  {(source.type === 'stats' || source.type === 'camera') && (
-                    <div className="text-xs text-white/40">Editable in a later phase.</div>
+                  {source.type === 'stats' && (
+                    <StatsEditor
+                      widgets={source.widgets}
+                      style={source.style}
+                      onChange={(patch) => setZoneSource(zone.zoneId, { ...source, ...patch })}
+                    />
+                  )}
+
+                  {source.type === 'camera' && (
+                    <CameraEditor
+                      deviceId={source.deviceId}
+                      rtspUrl={source.rtspUrl}
+                      onChange={(patch) => setZoneSource(zone.zoneId, { type: 'camera', ...patch })}
+                    />
                   )}
                 </div>
               )
@@ -252,5 +271,143 @@ function UrlField({
       }}
       className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30"
     />
+  )
+}
+
+function StatsEditor({
+  widgets,
+  style,
+  onChange
+}: {
+  widgets: string[]
+  style: 'bars' | 'gauges' | 'compact'
+  onChange: (patch: { widgets?: string[]; style?: 'bars' | 'gauges' | 'compact' }) => void
+}): ReactElement {
+  function toggleWidget(key: string): void {
+    const next = widgets.includes(key) ? widgets.filter((w) => w !== key) : [...widgets, key]
+    onChange({ widgets: next })
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap gap-2">
+        {METRICS.map((metric) => (
+          <button
+            key={metric.key}
+            onClick={() => toggleWidget(metric.key)}
+            className={`rounded-md border px-3 py-1 text-xs ${
+              widgets.includes(metric.key)
+                ? 'border-fuchsia-400/60 bg-fuchsia-500/10 text-fuchsia-300'
+                : 'border-white/10 bg-white/5 text-white/70 hover:border-white/20'
+            }`}
+          >
+            {metric.label}
+          </button>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        {STATS_STYLES.map((s) => (
+          <button
+            key={s}
+            onClick={() => onChange({ style: s })}
+            className={`rounded-md border px-3 py-1 text-xs capitalize ${
+              style === s
+                ? 'border-fuchsia-400/60 bg-fuchsia-500/10 text-fuchsia-300'
+                : 'border-white/10 bg-white/5 text-white/70 hover:border-white/20'
+            }`}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function CameraEditor({
+  deviceId,
+  rtspUrl,
+  onChange
+}: {
+  deviceId?: string
+  rtspUrl?: string
+  onChange: (patch: { deviceId?: string; rtspUrl?: string }) => void
+}): ReactElement {
+  const mode = rtspUrl != null ? 'rtsp' : 'usb'
+  const [devices, setDevices] = useState<MediaDeviceInfo[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadDevices(): Promise<void> {
+      let list = await navigator.mediaDevices.enumerateDevices()
+      const hasLabels = list.some((d) => d.kind === 'videoinput' && d.label)
+      if (!hasLabels) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+          stream.getTracks().forEach((track) => track.stop())
+          list = await navigator.mediaDevices.enumerateDevices()
+        } catch {
+          // permission denied or no camera; fall back to unlabeled ids
+        }
+      }
+      if (!cancelled) setDevices(list.filter((d) => d.kind === 'videoinput'))
+    }
+
+    loadDevices()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex gap-2">
+        <button
+          onClick={() => onChange({ deviceId, rtspUrl: undefined })}
+          className={`rounded-md border px-3 py-1 text-xs ${
+            mode === 'usb'
+              ? 'border-fuchsia-400/60 bg-fuchsia-500/10 text-fuchsia-300'
+              : 'border-white/10 bg-white/5 text-white/70 hover:border-white/20'
+          }`}
+        >
+          USB webcam
+        </button>
+        <button
+          onClick={() => onChange({ deviceId: undefined, rtspUrl: rtspUrl ?? '' })}
+          className={`rounded-md border px-3 py-1 text-xs ${
+            mode === 'rtsp'
+              ? 'border-fuchsia-400/60 bg-fuchsia-500/10 text-fuchsia-300'
+              : 'border-white/10 bg-white/5 text-white/70 hover:border-white/20'
+          }`}
+        >
+          RTSP
+        </button>
+      </div>
+
+      {mode === 'usb' && (
+        <select
+          value={deviceId ?? ''}
+          onChange={(e) => onChange({ deviceId: e.target.value || undefined, rtspUrl: undefined })}
+          className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
+        >
+          <option value="">System default</option>
+          {devices.map((d, i) => (
+            <option key={d.deviceId} value={d.deviceId}>
+              {d.label || `Camera ${i + 1}`}
+            </option>
+          ))}
+        </select>
+      )}
+
+      {mode === 'rtsp' && (
+        <UrlField
+          key="rtsp"
+          placeholder="rtsp://user:pass@192.168.1.x:554/stream"
+          value={rtspUrl ?? ''}
+          onCommit={(url) => onChange({ deviceId: undefined, rtspUrl: url })}
+        />
+      )}
+    </div>
   )
 }
