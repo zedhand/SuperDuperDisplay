@@ -14,6 +14,7 @@ import {
 import { registerMediaProtocolHandler, registerMediaProtocolScheme } from './protocol'
 import { FolderSyncManager } from './media/folderSync'
 import { TelemetryService } from './telemetry'
+import { TriggerEngine } from './triggerEngine'
 import { registerWebviewHardening } from './webSecurity'
 import { IpcChannel } from '@shared/ipc'
 
@@ -58,13 +59,27 @@ if (!gotLock) {
       displayWin.webContents.send(IpcChannel.MediaFolderChanged, { folder, items })
     })
 
+    // `ctx` is captured by the callbacks below before it's assigned, but not
+    // read until they actually run (async ticks), by which point it's set.
+    // eslint-disable-next-line prefer-const
+    let ctx: Parameters<typeof registerIpcHandlers>[0]
+
+    const triggerEngine = new TriggerEngine(
+      (state) => displayWin.webContents.send(IpcChannel.TriggerState, state),
+      (presetId) => {
+        const next = setConfig({ activePresetId: presetId })
+        broadcastConfig(ctx, next)
+      }
+    )
+
     const telemetryService = new TelemetryService((telemetry) => {
       displayWin.webContents.send(IpcChannel.TelemetryTick, telemetry)
       controlWin?.webContents.send(IpcChannel.TelemetryTick, telemetry)
+      triggerEngine.evaluate(getConfig().triggers, telemetry)
     })
     telemetryService.start(config.telemetry)
 
-    const ctx = { controlWin, displayWin, displayManager, folderSyncManager, telemetryService }
+    ctx = { controlWin, displayWin, displayManager, folderSyncManager, telemetryService }
     registerIpcHandlers(ctx)
 
     displayWin.webContents.once('did-finish-load', () => broadcastConfig(ctx, getConfig()))
