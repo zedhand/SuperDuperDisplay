@@ -87,7 +87,11 @@ function BarRow({
         style={{
           display: 'flex',
           justifyContent: 'space-between',
-          fontSize: 'clamp(14px, 38cqh, 96px)',
+          // A label + value ("GPU Clock" / "3800MHz") is unbreakable text
+          // sharing one row, so its size has to respect the row's width too
+          // — cqh alone let it fit height-wise while still overflowing a
+          // narrow column horizontally.
+          fontSize: 'max(11px, min(38cqh, 11cqw, 96px))',
           color: '#ccc'
         }}
       >
@@ -172,7 +176,9 @@ function GaugeRow({
           {value == null ? '—' : Math.round(value)}
         </text>
       </svg>
-      <span style={{ fontSize: 'clamp(10px, 14cqh, 40px)', color: '#ccc' }}>{def.label}</span>
+      <span style={{ fontSize: 'max(8px, min(14cqh, 16cqw, 40px))', color: '#ccc' }}>
+        {def.label}
+      </span>
     </div>
   )
 }
@@ -194,7 +200,7 @@ function CompactRow({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        fontSize: 'clamp(14px, 46cqh, 96px)',
+        fontSize: 'max(11px, min(46cqh, 11cqw, 96px))',
         minWidth: 0,
         minHeight: 0,
         containerType: 'size'
