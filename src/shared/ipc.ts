@@ -76,7 +76,7 @@ export interface IpcBroadcastMap {
   [IpcChannel.TelemetryTick]: Telemetry
   [IpcChannel.TriggerState]: TriggerState
   [IpcChannel.DisplaysChanged]: DisplayInfo[]
-  [IpcChannel.MediaFolderChanged]: MediaItem[]
+  [IpcChannel.MediaFolderChanged]: { folder: string; items: MediaItem[] }
 }
 
 export type InvokeChannel = keyof IpcInvokeMap

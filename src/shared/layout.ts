@@ -1,4 +1,4 @@
-import type { Layout, ResolvedZone, Rotation, ZoneSource } from './types'
+import type { AppConfig, Layout, ResolvedZone, Rotation, ZoneSource } from './types'
 
 /**
  * Splits a layout into percentage rects, in reading order (left-to-right for
@@ -61,6 +61,17 @@ export function rotatedContentSize(
     return { width: physical.height, height: physical.width }
   }
   return { width: physical.width, height: physical.height }
+}
+
+/** Folder paths referenced by media zones on the currently active preset — the set a folder watcher should keep live. */
+export function getActiveMediaFolders(config: AppConfig): string[] {
+  const preset = config.presets.find((p) => p.id === config.activePresetId)
+  if (!preset) return []
+  const folders = Object.values(preset.zones)
+    .filter((zone): zone is Extract<ZoneSource, { type: 'media' }> => zone.type === 'media')
+    .map((zone) => zone.folder)
+    .filter((folder): folder is string => Boolean(folder))
+  return [...new Set(folders)]
 }
 
 /**

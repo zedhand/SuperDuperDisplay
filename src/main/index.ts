@@ -12,6 +12,8 @@ import {
   registerIpcHandlers
 } from './ipc'
 import { registerMediaProtocolHandler, registerMediaProtocolScheme } from './protocol'
+import { FolderSyncManager } from './media/folderSync'
+import { IpcChannel } from '@shared/ipc'
 
 registerMediaProtocolScheme()
 
@@ -49,7 +51,11 @@ if (!gotLock) {
     displayManager.retarget()
     displayManager.applyMode(config.display.mode)
 
-    const ctx = { controlWin, displayWin, displayManager }
+    const folderSyncManager = new FolderSyncManager((folder, items) => {
+      displayWin.webContents.send(IpcChannel.MediaFolderChanged, { folder, items })
+    })
+
+    const ctx = { controlWin, displayWin, displayManager, folderSyncManager }
     registerIpcHandlers(ctx)
 
     displayWin.webContents.once('did-finish-load', () => broadcastConfig(ctx, getConfig()))
@@ -81,6 +87,8 @@ if (!gotLock) {
         controlWin = createControlWindow(getConfig())
       }
     })
+
+    app.on('before-quit', () => folderSyncManager.stopAll())
   })
 
   app.on('window-all-closed', () => {

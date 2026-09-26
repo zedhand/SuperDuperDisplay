@@ -2,6 +2,7 @@ import type { ReactElement } from 'react'
 import type { ResolvedZone } from '@shared/types'
 import { mediaKindFromPath, toMediaUrl } from '@shared/media'
 import { MediaZone } from './MediaZone'
+import { FolderMediaZone } from './FolderMediaZone'
 import { ZonePlaceholder } from './ZonePlaceholder'
 
 export function ZoneRenderer({ zone }: { zone: ResolvedZone }): ReactElement {
@@ -9,14 +10,22 @@ export function ZoneRenderer({ zone }: { zone: ResolvedZone }): ReactElement {
 
   switch (source.type) {
     case 'media': {
+      if (source.folder) {
+        return (
+          <FolderMediaZone
+            folder={source.folder}
+            shuffle={source.shuffle}
+            intervalSec={source.intervalSec}
+            fit={source.fit}
+            bg={source.bg}
+            bgColor={source.bgColor}
+          />
+        )
+      }
       const path = source.path
       const kind = path ? mediaKindFromPath(path) : null
       if (!path || !kind) {
-        return (
-          <ZonePlaceholder
-            label={source.folder ? 'Folder playlist (coming soon)' : 'No media selected'}
-          />
-        )
+        return <ZonePlaceholder label="No media selected" />
       }
       return (
         <MediaZone
