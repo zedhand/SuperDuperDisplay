@@ -15,6 +15,7 @@ import { registerMediaProtocolHandler, registerMediaProtocolScheme } from './pro
 import { FolderSyncManager } from './media/folderSync'
 import { TelemetryService } from './telemetry'
 import { TriggerEngine } from './triggerEngine'
+import { PowerManager } from './power'
 import { registerWebviewHardening } from './webSecurity'
 import { IpcChannel } from '@shared/ipc'
 
@@ -82,6 +83,13 @@ if (!gotLock) {
     ctx = { controlWin, displayWin, displayManager, folderSyncManager, telemetryService }
     registerIpcHandlers(ctx)
 
+    const powerManager = new PowerManager(getConfig, (mode) => {
+      const next = setConfig({ display: { ...getConfig().display, mode } })
+      displayManager.applyMode(mode)
+      broadcastConfig(ctx, next)
+    })
+    powerManager.startIdleWatch()
+
     displayWin.webContents.once('did-finish-load', () => broadcastConfig(ctx, getConfig()))
     controlWin.webContents.once('did-finish-load', () => broadcastConfig(ctx, getConfig()))
 
@@ -115,6 +123,7 @@ if (!gotLock) {
     app.on('before-quit', () => {
       folderSyncManager.stopAll()
       telemetryService.stop()
+      powerManager.stopIdleWatch()
     })
   })
 
