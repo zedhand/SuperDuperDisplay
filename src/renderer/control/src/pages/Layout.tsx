@@ -26,9 +26,33 @@ export function LayoutPage(): ReactElement {
 
   const layout: Layout = activeLayout
 
+  // Layouts are shared by id across presets (e.g. the default "single"
+  // layout backs both "Full-bleed loop" and "Black"). Mutating one in
+  // place — which is what this editor otherwise does — would silently
+  // reshape every other preset that happens to reference the same
+  // layout. Clone it for this preset the moment more than one preset
+  // relies on it, so editing here only ever affects the preset you're
+  // looking at.
   function updateLayout(updater: (l: Layout) => Layout): void {
-    if (!config) return
-    patch({ layouts: config.layouts.map((l) => (l.id === layout.id ? updater(l) : l)) })
+    if (!config || !activePreset) return
+    const sharedWithOtherPresets = config.presets.some(
+      (p) => p.id !== activePreset.id && p.layoutId === layout.id
+    )
+    if (sharedWithOtherPresets) {
+      const cloned = updater({
+        ...layout,
+        id: crypto.randomUUID(),
+        name: `${layout.name} (${activePreset.name})`
+      })
+      patch({
+        layouts: [...config.layouts, cloned],
+        presets: config.presets.map((p) =>
+          p.id === activePreset.id ? { ...p, layoutId: cloned.id } : p
+        )
+      })
+    } else {
+      patch({ layouts: config.layouts.map((l) => (l.id === layout.id ? updater(l) : l)) })
+    }
   }
 
   function setSplit(split: Layout['split']): void {
