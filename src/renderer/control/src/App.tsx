@@ -3,11 +3,11 @@ import { Sidebar, type PageId } from './components/Sidebar'
 import { DisplaysPage } from './pages/Displays'
 import { ScenesPage } from './pages/Scenes'
 import { LayoutPage } from './pages/Layout'
+import { ColorPage } from './pages/Color'
 import { ComingSoonPage } from './pages/ComingSoon'
 import { initConfigStore } from './store/useConfigStore'
 
 const COMING_SOON: Partial<Record<PageId, string>> = {
-  color: 'Phase 3 — Telemetry and post-processing',
   triggers: 'Phase 4 — Automation and integration',
   remote: 'Phase 4 — Automation and integration',
   settings: 'Phase 4 — Automation and integration'
@@ -16,7 +16,8 @@ const COMING_SOON: Partial<Record<PageId, string>> = {
 const PAGE_COMPONENTS: Partial<Record<PageId, () => ReactElement>> = {
   displays: DisplaysPage,
   scenes: ScenesPage,
-  layout: LayoutPage
+  layout: LayoutPage,
+  color: ColorPage
 }
 
 function App(): ReactElement {
