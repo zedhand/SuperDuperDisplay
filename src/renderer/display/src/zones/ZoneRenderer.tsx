@@ -6,6 +6,8 @@ import { FolderMediaZone } from './FolderMediaZone'
 import { YoutubeZone } from './YoutubeZone'
 import { WebZone } from './WebZone'
 import { StatsZone } from './StatsZone'
+import { CameraZone } from './CameraZone'
+import { RtspZone } from './RtspZone'
 import { ZonePlaceholder } from './ZonePlaceholder'
 
 export function ZoneRenderer({ zone }: { zone: ResolvedZone }): ReactElement {
@@ -56,6 +58,7 @@ export function ZoneRenderer({ zone }: { zone: ResolvedZone }): ReactElement {
     case 'stats':
       return <StatsZone widgets={source.widgets} style={source.style} />
     case 'camera':
-      return <ZonePlaceholder label="Camera (coming soon)" />
+      if (source.rtspUrl) return <RtspZone url={source.rtspUrl} />
+      return <CameraZone deviceId={source.deviceId} />
   }
 }

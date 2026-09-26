@@ -9,6 +9,7 @@ import type { DisplayManager } from './displayManager'
 import type { FolderSyncManager } from './media/folderSync'
 import type { TelemetryService } from './telemetry'
 import type { TrayManager } from './tray'
+import type { RtspManager } from './camera/rtsp'
 
 export interface IpcContext {
   controlWin: BrowserWindow
@@ -17,6 +18,7 @@ export interface IpcContext {
   folderSyncManager: FolderSyncManager
   telemetryService: TelemetryService
   trayManager: TrayManager
+  rtspManager: RtspManager
 }
 
 export function broadcastConfig(ctx: IpcContext, config: AppConfig): void {
@@ -102,6 +104,12 @@ export function registerIpcHandlers(ctx: IpcContext): void {
   ipcMain.handle(IpcChannel.MediaPickFolder, async () => {
     const result = await dialog.showOpenDialog(ctx.controlWin, { properties: ['openDirectory'] })
     return result.canceled ? null : (result.filePaths[0] ?? null)
+  })
+
+  ipcMain.handle(IpcChannel.RtspStart, (_event, url: string) => ctx.rtspManager.start(url))
+
+  ipcMain.handle(IpcChannel.RtspStop, (_event, url: string) => {
+    ctx.rtspManager.stop(url)
   })
 }
 
