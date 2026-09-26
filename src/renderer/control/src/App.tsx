@@ -2,15 +2,21 @@ import { useEffect, useState, type ReactElement } from 'react'
 import { Sidebar, type PageId } from './components/Sidebar'
 import { DisplaysPage } from './pages/Displays'
 import { ScenesPage } from './pages/Scenes'
+import { LayoutPage } from './pages/Layout'
 import { ComingSoonPage } from './pages/ComingSoon'
 import { initConfigStore } from './store/useConfigStore'
 
 const COMING_SOON: Partial<Record<PageId, string>> = {
-  layout: 'Phase 2 — Media engine',
   color: 'Phase 3 — Telemetry and post-processing',
   triggers: 'Phase 4 — Automation and integration',
   remote: 'Phase 4 — Automation and integration',
   settings: 'Phase 4 — Automation and integration'
+}
+
+const PAGE_COMPONENTS: Partial<Record<PageId, () => ReactElement>> = {
+  displays: DisplaysPage,
+  scenes: ScenesPage,
+  layout: LayoutPage
 }
 
 function App(): ReactElement {
@@ -20,14 +26,14 @@ function App(): ReactElement {
     initConfigStore()
   }, [])
 
+  const PageComponent = PAGE_COMPONENTS[page]
+
   return (
     <div className="flex h-screen w-screen bg-[#0b0b0f]">
       <Sidebar active={page} onSelect={setPage} />
       <main className="flex-1 overflow-y-auto">
-        {page === 'displays' ? (
-          <DisplaysPage />
-        ) : page === 'scenes' ? (
-          <ScenesPage />
+        {PageComponent ? (
+          <PageComponent />
         ) : (
           <ComingSoonPage title={page} phase={COMING_SOON[page] ?? 'a later phase'} />
         )}
