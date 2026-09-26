@@ -3,18 +3,22 @@ import { writeFile } from 'fs/promises'
 import { join } from 'path'
 import { IpcChannel } from '@shared/ipc'
 import type { AppConfig } from '@shared/types'
+import { getActiveMediaFolders } from '@shared/layout'
 import { getConfig, setConfig } from './store'
 import type { DisplayManager } from './displayManager'
+import type { FolderSyncManager } from './media/folderSync'
 
 export interface IpcContext {
   controlWin: BrowserWindow
   displayWin: BrowserWindow
   displayManager: DisplayManager
+  folderSyncManager: FolderSyncManager
 }
 
 export function broadcastConfig(ctx: IpcContext, config: AppConfig): void {
   ctx.controlWin.webContents.send(IpcChannel.ConfigChanged, config)
   ctx.displayWin.webContents.send(IpcChannel.ConfigChanged, config)
+  ctx.folderSyncManager.setActiveFolders(getActiveMediaFolders(config))
 }
 
 export function broadcastDisplays(ctx: IpcContext): void {

@@ -1,15 +1,15 @@
 import { type ReactElement } from 'react'
-import { FolderOpen } from 'lucide-react'
+import { File, FolderOpen } from 'lucide-react'
 import type { FitMode, Preset, ZoneSource } from '@shared/types'
 import { resolveZones } from '@shared/layout'
 import { useConfigStore } from '../store/useConfigStore'
 
 const FIT_MODES: FitMode[] = ['cover', 'contain', 'stretch']
 
-function defaultMediaSource(path: string): ZoneSource {
+function defaultMediaSource(source: { path?: string; folder?: string }): ZoneSource {
   return {
     type: 'media',
-    path,
+    ...source,
     shuffle: false,
     intervalSec: 8,
     fit: 'cover',
@@ -38,9 +38,14 @@ export function ScenesPage(): ReactElement {
     updatePreset(activePreset.id, (p) => ({ ...p, zones: { ...p.zones, [zoneId]: source } }))
   }
 
-  async function pickMediaForZone(zoneId: string): Promise<void> {
+  async function pickFileForZone(zoneId: string): Promise<void> {
     const path = await window.control.media.pickFile()
-    if (path) setZoneSource(zoneId, defaultMediaSource(path))
+    if (path) setZoneSource(zoneId, defaultMediaSource({ path }))
+  }
+
+  async function pickFolderForZone(zoneId: string): Promise<void> {
+    const folder = await window.control.media.pickFolder()
+    if (folder) setZoneSource(zoneId, defaultMediaSource({ folder }))
   }
 
   return (
@@ -80,15 +85,56 @@ export function ScenesPage(): ReactElement {
                   {source.type === 'media' && (
                     <div className="flex flex-col gap-3">
                       <div className="truncate text-xs text-white/50">
-                        {source.path ?? source.folder ?? 'No media selected'}
+                        {source.path ??
+                          (source.folder ? `${source.folder} (folder)` : 'No media selected')}
                       </div>
-                      <button
-                        onClick={() => pickMediaForZone(zone.zoneId)}
-                        className="flex w-fit items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/80 hover:border-white/20"
-                      >
-                        <FolderOpen size={14} />
-                        Pick file…
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => pickFileForZone(zone.zoneId)}
+                          className="flex w-fit items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/80 hover:border-white/20"
+                        >
+                          <File size={14} />
+                          Pick file…
+                        </button>
+                        <button
+                          onClick={() => pickFolderForZone(zone.zoneId)}
+                          className="flex w-fit items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/80 hover:border-white/20"
+                        >
+                          <FolderOpen size={14} />
+                          Pick folder…
+                        </button>
+                      </div>
+
+                      {source.folder && (
+                        <div className="flex items-center gap-3">
+                          <label className="flex items-center gap-2 text-xs text-white/70">
+                            <input
+                              type="checkbox"
+                              checked={source.shuffle}
+                              onChange={(e) =>
+                                setZoneSource(zone.zoneId, { ...source, shuffle: e.target.checked })
+                              }
+                            />
+                            Shuffle
+                          </label>
+                          <label className="flex items-center gap-2 text-xs text-white/70">
+                            Every
+                            <input
+                              type="number"
+                              min={1}
+                              value={source.intervalSec}
+                              onChange={(e) =>
+                                setZoneSource(zone.zoneId, {
+                                  ...source,
+                                  intervalSec: Math.max(1, Number(e.target.value) || 1)
+                                })
+                              }
+                              className="w-14 rounded border border-white/10 bg-white/5 px-2 py-1 text-white"
+                            />
+                            sec
+                          </label>
+                        </div>
+                      )}
 
                       <div className="flex gap-2">
                         {FIT_MODES.map((fit) => (
@@ -137,13 +183,22 @@ export function ScenesPage(): ReactElement {
                   )}
 
                   {source.type === 'blank' && (
-                    <button
-                      onClick={() => pickMediaForZone(zone.zoneId)}
-                      className="flex w-fit items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/80 hover:border-white/20"
-                    >
-                      <FolderOpen size={14} />
-                      Pick file…
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => pickFileForZone(zone.zoneId)}
+                        className="flex w-fit items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/80 hover:border-white/20"
+                      >
+                        <File size={14} />
+                        Pick file…
+                      </button>
+                      <button
+                        onClick={() => pickFolderForZone(zone.zoneId)}
+                        className="flex w-fit items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/80 hover:border-white/20"
+                      >
+                        <FolderOpen size={14} />
+                        Pick folder…
+                      </button>
+                    </div>
                   )}
 
                   {source.type !== 'media' && source.type !== 'blank' && (
