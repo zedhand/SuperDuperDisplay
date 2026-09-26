@@ -149,6 +149,28 @@ installed it for real (`/S` silent install, to
       what the control window's config store already did for
       `window.control.config`. This was a latent bug since Phase 1,
       unrelated to the stats changes that led to finding it.
+  - **LibreHardwareMonitor installed and configured for CPU Temp**:
+    downloaded v0.9.6 from the official GitHub releases, extracted to
+    `C:\Tools\LibreHardwareMonitor` (portable, no installer). Its
+    settings are a plain XML file next to the exe
+    (`LibreHardwareMonitor.config`, key/value `appSettings` — found by
+    reading its `PersistentSettings.cs`/`UserOption.cs`/`MainForm.cs`
+    source directly, not guessed), pre-seeded *before first launch* so
+    it came up with the Remote Web Server already enabled on `:8085`
+    (MiniDisplay's default `telemetry.lhmUrl` already pointed here — no
+    port mismatch) rather than needing anyone to click through its
+    Options menu. Registered as a Scheduled Task (`schtasks`, logon
+    trigger, `RL HIGHEST`) rather than the Windows "Run" registry key,
+    matching exactly what LHM's own "start on Windows startup" checkbox
+    does internally (`StartupManager.cs`) — this way it launches
+    elevated automatically every login with no UAC prompt, since admin
+    rights are required to read most sensors. Verified end to end: the
+    real motherboard is an AMD system (Gigabyte X570 AORUS ELITE);
+    confirmed its `Core (Tctl/Tdie)` sensor (`/amdcpu/0/temperature/2`)
+    is exactly what `parsers.ts`'s existing AMD-label matching already
+    expected, then confirmed via CDP that MiniDisplay's CPU Temp gauge
+    actually updated (51°C) — no code changes needed on the MiniDisplay
+    side, this was purely an environment/setup gap.
 
 ### Next up
 
@@ -164,10 +186,6 @@ binary that was actually tested, not just the source.
 
 What's still open:
 
-- **CPU Temp needs LibreHardwareMonitor.** Confirmed live it's not
-  installed/running on this machine. Ask the user whether to install
-  and set it up (it needs its Remote Web Server enabled, and admin
-  rights to read most sensors), or leave CPU Temp permanently blank.
 - **Firewall rule is broader than intended.** The inbound Allow rule
   for `MiniDisplay.exe` covers both Private and Public network
   profiles; the user asked for Private-only, but narrowing it needs
