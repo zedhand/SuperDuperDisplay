@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { IpcChannel } from '@shared/ipc'
-import type { AppConfig, MediaItem, Telemetry } from '@shared/types'
+import type { AppConfig, MediaItem, Telemetry, TriggerState } from '@shared/types'
 
 const displayApi = {
   onConfigChanged: (cb: (config: AppConfig) => void): (() => void) => {
@@ -21,6 +21,11 @@ const displayApi = {
     ): void => cb(payload.folder, payload.items)
     ipcRenderer.on(IpcChannel.MediaFolderChanged, listener)
     return () => ipcRenderer.removeListener(IpcChannel.MediaFolderChanged, listener)
+  },
+  onTriggerState: (cb: (state: TriggerState) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, state: TriggerState): void => cb(state)
+    ipcRenderer.on(IpcChannel.TriggerState, listener)
+    return () => ipcRenderer.removeListener(IpcChannel.TriggerState, listener)
   }
 }
 

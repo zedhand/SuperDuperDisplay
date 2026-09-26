@@ -3,6 +3,7 @@ import type { AppConfig, ColorProfile } from '@shared/types'
 import { resolveZones, rotatedContentSize, rotationCssTransform } from '@shared/layout'
 import { buildColorFilterCss, gammaExponent, GAMMA_FILTER_ID } from '@shared/colorProfile'
 import { ZoneRenderer } from './zones/ZoneRenderer'
+import { AlertOverlay } from './fx/AlertOverlay'
 
 const NEUTRAL_COLOR_PROFILE: ColorProfile = {
   id: 'neutral',
@@ -89,6 +90,7 @@ export function Stage(): ReactElement | null {
               <ZoneRenderer zone={zone} />
             </div>
           ))}
+        {config.display.mode === 'live' && <AlertOverlay />}
       </div>
     </>
   )

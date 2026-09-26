@@ -1,0 +1,224 @@
+import { useEffect, useState, type ReactElement } from 'react'
+import { Plus, Trash2 } from 'lucide-react'
+import type { Telemetry, Trigger } from '@shared/types'
+import { getMetricDef, METRICS } from '@shared/telemetryMetrics'
+import { useConfigStore } from '../store/useConfigStore'
+
+function newTrigger(): Trigger {
+  return {
+    id: crypto.randomUUID(),
+    name: 'New trigger',
+    metric: 'gpuTemp',
+    op: '>',
+    value: 85,
+    holdSec: 5,
+    clearBelow: 80,
+    effect: { type: 'glow', color: '#ff2020' }
+  }
+}
+
+export function TriggersPage(): ReactElement {
+  const config = useConfigStore((s) => s.config)
+  const patch = useConfigStore((s) => s.patch)
+  const [telemetry, setTelemetry] = useState<Telemetry | null>(null)
+
+  useEffect(() => window.control.telemetry.onTick(setTelemetry), [])
+
+  if (!config) return <div className="p-6 text-white/50">Loading…</div>
+
+  function updateTrigger(id: string, updater: (t: Trigger) => Trigger): void {
+    if (!config) return
+    patch({ triggers: config.triggers.map((t) => (t.id === id ? updater(t) : t)) })
+  }
+
+  function removeTrigger(id: string): void {
+    if (!config) return
+    patch({ triggers: config.triggers.filter((t) => t.id !== id) })
+  }
+
+  function addTrigger(): void {
+    if (!config) return
+    patch({ triggers: [...config.triggers, newTrigger()] })
+  }
+
+  return (
+    <div className="flex flex-col gap-6 p-6">
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-white">Triggers</h2>
+          <button
+            onClick={addTrigger}
+            className="flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/80 hover:border-white/20"
+          >
+            <Plus size={14} />
+            Add trigger
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          {config.triggers.length === 0 && (
+            <p className="text-sm text-white/40">
+              No triggers yet. Add one to react to temperature or load thresholds.
+            </p>
+          )}
+
+          {config.triggers.map((trigger) => {
+            const metricDef = getMetricDef(trigger.metric)
+            const currentValue = telemetry && metricDef ? metricDef.getValue(telemetry) : null
+
+            return (
+              <div key={trigger.id} className="rounded-lg border border-white/10 bg-white/5 p-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <input
+                    value={trigger.name}
+                    onChange={(e) =>
+                      updateTrigger(trigger.id, (t) => ({ ...t, name: e.target.value }))
+                    }
+                    className="rounded border border-white/10 bg-transparent px-2 py-1 text-sm font-medium text-white"
+                  />
+                  <button
+                    onClick={() => removeTrigger(trigger.id)}
+                    className="rounded-md border border-white/10 bg-white/5 p-1.5 text-white/50 hover:border-red-400/40 hover:text-red-400"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  <select
+                    value={trigger.metric}
+                    onChange={(e) =>
+                      updateTrigger(trigger.id, (t) => ({
+                        ...t,
+                        metric: e.target.value as Trigger['metric']
+                      }))
+                    }
+                    className="rounded border border-white/10 bg-white/5 px-2 py-1 text-white"
+                  >
+                    {METRICS.map((m) => (
+                      <option key={m.key} value={m.key}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={trigger.op}
+                    onChange={(e) =>
+                      updateTrigger(trigger.id, (t) => ({
+                        ...t,
+                        op: e.target.value as Trigger['op']
+                      }))
+                    }
+                    className="rounded border border-white/10 bg-white/5 px-2 py-1 text-white"
+                  >
+                    <option value=">">greater than</option>
+                    <option value="<">less than</option>
+                  </select>
+
+                  <input
+                    type="number"
+                    value={trigger.value}
+                    onChange={(e) =>
+                      updateTrigger(trigger.id, (t) => ({ ...t, value: Number(e.target.value) }))
+                    }
+                    className="w-20 rounded border border-white/10 bg-white/5 px-2 py-1 text-white"
+                  />
+
+                  {metricDef && <span className="text-white/40">{metricDef.unit}</span>}
+
+                  {currentValue != null && (
+                    <span className="text-xs text-white/40">(now {Math.round(currentValue)})</span>
+                  )}
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-white/70">
+                  <label className="flex items-center gap-2">
+                    hold
+                    <input
+                      type="number"
+                      min={0}
+                      value={trigger.holdSec}
+                      onChange={(e) =>
+                        updateTrigger(trigger.id, (t) => ({
+                          ...t,
+                          holdSec: Number(e.target.value)
+                        }))
+                      }
+                      className="w-16 rounded border border-white/10 bg-white/5 px-2 py-1 text-white"
+                    />
+                    sec
+                  </label>
+                  <label className="flex items-center gap-2">
+                    clear below
+                    <input
+                      type="number"
+                      value={trigger.clearBelow}
+                      onChange={(e) =>
+                        updateTrigger(trigger.id, (t) => ({
+                          ...t,
+                          clearBelow: Number(e.target.value)
+                        }))
+                      }
+                      className="w-20 rounded border border-white/10 bg-white/5 px-2 py-1 text-white"
+                    />
+                  </label>
+                </div>
+
+                <div className="mt-3 flex items-center gap-3 text-sm">
+                  <select
+                    value={trigger.effect.type}
+                    onChange={(e) =>
+                      updateTrigger(trigger.id, (t) => ({
+                        ...t,
+                        effect:
+                          e.target.value === 'glow'
+                            ? { type: 'glow', color: '#ff2020' }
+                            : { type: 'preset', presetId: config?.presets[0]?.id ?? '' }
+                      }))
+                    }
+                    className="rounded border border-white/10 bg-white/5 px-2 py-1 text-white"
+                  >
+                    <option value="glow">Pulsing glow</option>
+                    <option value="preset">Switch preset</option>
+                  </select>
+
+                  {trigger.effect.type === 'glow' ? (
+                    <input
+                      type="color"
+                      value={trigger.effect.color}
+                      onChange={(e) =>
+                        updateTrigger(trigger.id, (t) => ({
+                          ...t,
+                          effect: { type: 'glow', color: e.target.value }
+                        }))
+                      }
+                      className="h-7 w-10 rounded border border-white/10 bg-transparent"
+                    />
+                  ) : (
+                    <select
+                      value={trigger.effect.presetId}
+                      onChange={(e) =>
+                        updateTrigger(trigger.id, (t) => ({
+                          ...t,
+                          effect: { type: 'preset', presetId: e.target.value }
+                        }))
+                      }
+                      className="rounded border border-white/10 bg-white/5 px-2 py-1 text-white"
+                    >
+                      {config.presets.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </section>
+    </div>
+  )
+}
