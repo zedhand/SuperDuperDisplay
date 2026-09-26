@@ -1,10 +1,62 @@
-import { useEffect, useState, type CSSProperties, type ReactElement } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactElement } from 'react'
 import type { Telemetry } from '@shared/types'
 import { getMetricDef } from '@shared/telemetryMetrics'
 
 function formatValue(value: number | null, unit: string): string {
   if (value == null) return '—'
   return `${Math.round(value)}${unit}`
+}
+
+/** Measures an element's rendered pixel size, updating on resize. */
+function useElementSize<T extends HTMLElement>(): [
+  (node: T | null) => void,
+  { width: number; height: number }
+] {
+  const [size, setSize] = useState({ width: 0, height: 0 })
+  const observerRef = useRef<ResizeObserver | null>(null)
+
+  const setRef = (node: T | null): void => {
+    observerRef.current?.disconnect()
+    if (!node) return
+    const observer = new ResizeObserver(([entry]) => {
+      if (!entry) return
+      const { width, height } = entry.contentRect
+      setSize({ width, height })
+    })
+    observer.observe(node)
+    observerRef.current = observer
+  }
+
+  useEffect(() => () => observerRef.current?.disconnect(), [])
+
+  return [setRef, size]
+}
+
+/**
+ * Picks how many columns to arrange `count` cells into, given the actual
+ * pixel space available and each cell's natural width:height ratio — by
+ * trying every column count and keeping whichever one lets a cell grow
+ * largest without overflowing either axis. This is what actually makes a
+ * widget list "auto-scale" to a zone's real shape (a full-bleed 1920x480
+ * zone and a narrow 30%-width column need very different grids for the same
+ * 8 widgets) instead of assuming one fixed layout.
+ */
+function pickColumns(count: number, width: number, height: number, cellAspect: number): number {
+  if (count <= 1 || width <= 0 || height <= 0) return 1
+
+  let bestColumns = 1
+  let bestScale = -Infinity
+  for (let columns = 1; columns <= count; columns++) {
+    const rows = Math.ceil(count / columns)
+    const cellWidth = width / columns
+    const cellHeight = height / rows
+    const scale = Math.min(cellWidth / cellAspect, cellHeight)
+    if (scale > bestScale) {
+      bestScale = scale
+      bestColumns = columns
+    }
+  }
+  return bestColumns
 }
 
 function BarRow({
@@ -84,12 +136,16 @@ function GaugeRow({
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: 'clamp(8px, 2cqmin, 24px)'
+        justifyContent: 'center',
+        gap: 'clamp(4px, 3cqh, 24px)',
+        minWidth: 0,
+        minHeight: 0,
+        containerType: 'size'
       }}
     >
       <svg
         viewBox="0 0 72 72"
-        style={{ width: 'clamp(100px, 42cqmin, 320px)', height: 'clamp(100px, 42cqmin, 320px)' }}
+        style={{ width: 'clamp(48px, 75cqmin, 320px)', height: 'clamp(48px, 75cqmin, 320px)' }}
       >
         <circle
           cx={36}
@@ -116,7 +172,7 @@ function GaugeRow({
           {value == null ? '—' : Math.round(value)}
         </text>
       </svg>
-      <span style={{ fontSize: 'clamp(18px, 7.5cqmin, 56px)', color: '#ccc' }}>{def.label}</span>
+      <span style={{ fontSize: 'clamp(10px, 14cqh, 40px)', color: '#ccc' }}>{def.label}</span>
     </div>
   )
 }
@@ -150,6 +206,13 @@ function CompactRow({
   )
 }
 
+/** How much wider than tall one cell naturally wants to be, per style — used to pick a grid that fits the zone's actual shape. */
+const CELL_ASPECT: Record<'bars' | 'gauges' | 'compact', number> = {
+  bars: 3.2,
+  gauges: 0.85,
+  compact: 5
+}
+
 export function StatsZone({
   widgets,
   style
@@ -158,40 +221,31 @@ export function StatsZone({
   style: 'bars' | 'gauges' | 'compact'
 }): ReactElement {
   const [telemetry, setTelemetry] = useState<Telemetry | null>(null)
+  const [sizeRef, { width, height }] = useElementSize<HTMLDivElement>()
 
   useEffect(() => window.display.onTelemetry(setTelemetry), [])
 
   const Row = style === 'gauges' ? GaugeRow : style === 'compact' ? CompactRow : BarRow
 
-  let listStyle: CSSProperties
-  if (style === 'gauges') {
-    listStyle = {
-      display: 'flex',
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 'clamp(16px, 6cqmin, 56px)',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }
-  } else {
-    // bars/compact stack vertically with no wrapping, so a long widget list
-    // would just keep growing taller than the zone. Split into columns of
-    // ~4 rows each so it always fits instead of overflowing top and bottom.
-    const columns = Math.max(1, Math.ceil(widgets.length / 4))
-    const rows = Math.max(1, Math.ceil(widgets.length / columns))
-    listStyle = {
-      display: 'grid',
-      gridTemplateColumns: `repeat(${columns}, 1fr)`,
-      gridTemplateRows: `repeat(${rows}, 1fr)`,
-      gridAutoFlow: 'column',
-      gap: 'clamp(8px, 2cqmin, 32px)',
-      width: '100%',
-      height: '100%'
-    }
+  const columns = useMemo(
+    () => pickColumns(widgets.length, width, height, CELL_ASPECT[style]),
+    [widgets.length, width, height, style]
+  )
+  const rows = Math.max(1, Math.ceil(widgets.length / columns))
+
+  const listStyle: CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: `repeat(${columns}, 1fr)`,
+    gridTemplateRows: `repeat(${rows}, 1fr)`,
+    gridAutoFlow: 'column',
+    gap: 'clamp(8px, 2cqmin, 32px)',
+    width: '100%',
+    height: '100%'
   }
 
   return (
     <div
+      ref={sizeRef}
       style={{
         width: '100%',
         height: '100%',
