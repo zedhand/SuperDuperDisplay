@@ -89,10 +89,20 @@ hardware telemetry, or a camera feed (USB webcam or RTSP).
 
 ## Known housekeeping items (low priority, not blocking)
 
-- `README.md` at the repo root is the untouched electron-vite
-  scaffold template and its first line is corrupted (a very long
-  run of `y` characters, ~33KB on one line). Worth cleaning up before
-  any public/rebrand push, not urgent otherwise.
+- ~~`README.md` was the untouched electron-vite scaffold template with
+  a corrupted first line~~ — rewritten to actually describe the app
+  (features, dev setup) and matches this user's usual README structure
+  (tagline, beta banner, feature bullets, "For developers" section).
+- **`electron-builder.yml` has the same corruption**: `productName`
+  and `win.executableName` are each a ~33KB single line of repeated
+  `y` characters instead of a real value. Unlike the README this is a
+  functional bug, not cosmetic — it'll affect what a real
+  `build:win`/`build:mac`/`build:linux` actually produces (installer
+  shortcut name, uninstall display name, the `.exe` name itself).
+  Flagged to the user; not fixed yet since it overlaps with the
+  planned rebrand (new name/icon/appId) and picking a placeholder now
+  would just be thrown away then. Fix this **before the first real
+  build**, whether that's as part of the rebrand or before it.
 - No config.json existed in `%APPDATA%/minidisplay` until this
   session's live-testing runs created one with plain defaults
   (`activePresetId: full-bleed-loop`) — that's real first-run state,
