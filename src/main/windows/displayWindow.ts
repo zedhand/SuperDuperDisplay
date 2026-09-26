@@ -35,7 +35,8 @@ export function createDisplayWindow(bounds: DisplayWindowBounds): BrowserWindow 
       preload: join(__dirname, '../preload/display.js'),
       contextIsolation: true,
       sandbox: false,
-      backgroundThrottling: false
+      backgroundThrottling: false,
+      webviewTag: true
     }
   })
 

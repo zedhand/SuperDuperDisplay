@@ -13,6 +13,7 @@ import {
 } from './ipc'
 import { registerMediaProtocolHandler, registerMediaProtocolScheme } from './protocol'
 import { FolderSyncManager } from './media/folderSync'
+import { registerWebviewHardening } from './webSecurity'
 import { IpcChannel } from '@shared/ipc'
 
 registerMediaProtocolScheme()
@@ -33,6 +34,7 @@ if (!gotLock) {
   app.whenReady().then(() => {
     electronApp.setAppUserModelId('com.zedhand.minidisplay')
     registerMediaProtocolHandler()
+    registerWebviewHardening()
 
     app.on('browser-window-created', (_event, window) => {
       optimizer.watchWindowShortcuts(window)
