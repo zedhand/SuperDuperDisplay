@@ -10,6 +10,7 @@ import type { FolderSyncManager } from './media/folderSync'
 import type { TelemetryService } from './telemetry'
 import type { TrayManager } from './tray'
 import type { RtspManager } from './camera/rtsp'
+import { generateRemoteToken, type RemoteServer } from './remote/server'
 
 export interface IpcContext {
   controlWin: BrowserWindow
@@ -19,6 +20,7 @@ export interface IpcContext {
   telemetryService: TelemetryService
   trayManager: TrayManager
   rtspManager: RtspManager
+  remoteServer: RemoteServer
 }
 
 export function broadcastConfig(ctx: IpcContext, config: AppConfig): void {
@@ -26,6 +28,7 @@ export function broadcastConfig(ctx: IpcContext, config: AppConfig): void {
   ctx.displayWin.webContents.send(IpcChannel.ConfigChanged, config)
   ctx.folderSyncManager.setActiveFolders(getActiveMediaFolders(config))
   ctx.trayManager.update(config)
+  ctx.remoteServer.broadcastState(config)
 }
 
 export function broadcastDisplays(ctx: IpcContext): void {
@@ -38,7 +41,7 @@ export function broadcastDisplays(ctx: IpcContext): void {
 export function registerIpcHandlers(ctx: IpcContext): void {
   ipcMain.handle(IpcChannel.ConfigGet, () => getConfig())
 
-  ipcMain.handle(IpcChannel.ConfigSet, (_event, patch: Partial<AppConfig>) => {
+  ipcMain.handle(IpcChannel.ConfigSet, async (_event, patch: Partial<AppConfig>) => {
     const next = setConfig(patch)
     if (patch.display) {
       ctx.displayManager.retarget()
@@ -49,6 +52,9 @@ export function registerIpcHandlers(ctx: IpcContext): void {
     }
     if (patch.app) {
       app.setLoginItemSettings({ openAtLogin: next.app.launchAtLogin })
+    }
+    if (patch.remote) {
+      await ctx.remoteServer.applyConfig(next.remote)
     }
     broadcastConfig(ctx, next)
     return next
@@ -110,6 +116,25 @@ export function registerIpcHandlers(ctx: IpcContext): void {
 
   ipcMain.handle(IpcChannel.RtspStop, (_event, url: string) => {
     ctx.rtspManager.stop(url)
+  })
+
+  ipcMain.handle(IpcChannel.RemoteStatus, () => ctx.remoteServer.status())
+
+  ipcMain.handle(IpcChannel.RemoteSetEnabled, async (_event, enabled: boolean) => {
+    const current = getConfig()
+    const token = enabled && !current.remote.token ? generateRemoteToken() : current.remote.token
+    const next = setConfig({ remote: { ...current.remote, enabled, token } })
+    await ctx.remoteServer.applyConfig(next.remote)
+    broadcastConfig(ctx, next)
+    return ctx.remoteServer.status()
+  })
+
+  ipcMain.handle(IpcChannel.RemoteRegenerateToken, async () => {
+    const current = getConfig()
+    const next = setConfig({ remote: { ...current.remote, token: generateRemoteToken() } })
+    await ctx.remoteServer.applyConfig(next.remote)
+    broadcastConfig(ctx, next)
+    return ctx.remoteServer.status()
   })
 }
 

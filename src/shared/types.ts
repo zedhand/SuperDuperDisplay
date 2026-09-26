@@ -151,3 +151,10 @@ export interface TriggerState {
   activeTriggerIds: string[]
   effects: Array<Trigger['effect'] & { triggerId: string }>
 }
+
+export interface RemoteStatus {
+  running: boolean
+  url: string
+  token: string
+  qrDataUrl: string
+}

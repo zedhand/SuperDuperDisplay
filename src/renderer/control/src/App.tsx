@@ -5,13 +5,12 @@ import { ScenesPage } from './pages/Scenes'
 import { LayoutPage } from './pages/Layout'
 import { ColorPage } from './pages/Color'
 import { TriggersPage } from './pages/Triggers'
+import { RemotePage } from './pages/Remote'
 import { SettingsPage } from './pages/Settings'
 import { ComingSoonPage } from './pages/ComingSoon'
 import { initConfigStore } from './store/useConfigStore'
 
-const COMING_SOON: Partial<Record<PageId, string>> = {
-  remote: 'Phase 4 — Automation and integration'
-}
+const COMING_SOON: Partial<Record<PageId, string>> = {}
 
 const PAGE_COMPONENTS: Partial<Record<PageId, () => ReactElement>> = {
   displays: DisplaysPage,
@@ -19,6 +18,7 @@ const PAGE_COMPONENTS: Partial<Record<PageId, () => ReactElement>> = {
   layout: LayoutPage,
   color: ColorPage,
   triggers: TriggersPage,
+  remote: RemotePage,
   settings: SettingsPage
 }
 

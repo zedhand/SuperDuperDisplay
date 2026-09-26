@@ -4,6 +4,7 @@ import type {
   DisplayMatch,
   DisplayMode,
   MediaItem,
+  RemoteStatus,
   Rotation,
   Scene,
   Telemetry,
@@ -38,6 +39,7 @@ export const IpcChannel = {
 
   RemoteStatus: 'remote:status',
   RemoteSetEnabled: 'remote:setEnabled',
+  RemoteRegenerateToken: 'remote:regenerateToken',
 
   DebugCaptureDisplay: 'debug:captureDisplay'
 } as const
@@ -61,11 +63,9 @@ export interface IpcInvokeMap {
   [IpcChannel.CameraListDevices]: { args: []; result: void }
   [IpcChannel.RtspStart]: { args: [url: string]; result: { mjpegUrl: string } }
   [IpcChannel.RtspStop]: { args: [url: string]; result: void }
-  [IpcChannel.RemoteStatus]: {
-    args: []
-    result: { running: boolean; url: string; token: string; qrDataUrl: string }
-  }
-  [IpcChannel.RemoteSetEnabled]: { args: [enabled: boolean]; result: void }
+  [IpcChannel.RemoteStatus]: { args: []; result: RemoteStatus }
+  [IpcChannel.RemoteSetEnabled]: { args: [enabled: boolean]; result: RemoteStatus }
+  [IpcChannel.RemoteRegenerateToken]: { args: []; result: RemoteStatus }
   [IpcChannel.DebugCaptureDisplay]: { args: []; result: { filePath: string } }
 }
 
