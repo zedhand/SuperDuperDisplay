@@ -3,6 +3,7 @@ import { IpcChannel } from '@shared/ipc'
 import type { AppConfig, MediaItem, Telemetry, TriggerState } from '@shared/types'
 
 const displayApi = {
+  getConfig: (): Promise<AppConfig> => ipcRenderer.invoke(IpcChannel.ConfigGet),
   onConfigChanged: (cb: (config: AppConfig) => void): (() => void) => {
     const listener = (_event: Electron.IpcRendererEvent, config: AppConfig): void => cb(config)
     ipcRenderer.on(IpcChannel.ConfigChanged, listener)
