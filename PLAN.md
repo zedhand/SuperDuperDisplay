@@ -171,6 +171,17 @@ installed it for real (`/S` silent install, to
     expected, then confirmed via CDP that MiniDisplay's CPU Temp gauge
     actually updated (51°C) — no code changes needed on the MiniDisplay
     side, this was purely an environment/setup gap.
+  - **Second round of dogfooding feedback** (`62b630a`): with all 8
+    widgets visible and readable, the user wanted them grouped by what
+    they measure (CPU together, GPU together, memory together —
+    they'd been interleaved) and significantly bigger. Reordered
+    `METRICS` and both default presets' widget lists to group by
+    category, and roughly doubled every size in `StatsZone.tsx` (the
+    first sizing pass left a lot of headroom unused in the `clamp()`
+    ranges). Verified via CDP on the real installed build: widgets now
+    render in CPU → GPU → memory order, and gauges went from ~96px to
+    ~216px at this panel's actual 1920×480 while still comfortably
+    fitting one row with margin to spare.
 
 ### Next up
 
