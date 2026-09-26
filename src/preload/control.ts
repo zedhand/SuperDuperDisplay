@@ -34,6 +34,10 @@ const controlApi = {
       return () => ipcRenderer.removeListener(IpcChannel.DisplaysChanged, listener)
     }
   },
+  media: {
+    pickFile: (): Promise<string | null> => ipcRenderer.invoke(IpcChannel.MediaPickFile),
+    pickFolder: (): Promise<string | null> => ipcRenderer.invoke(IpcChannel.MediaPickFolder)
+  },
   debug: {
     captureDisplay: (): Promise<{ filePath: string }> =>
       ipcRenderer.invoke(IpcChannel.DebugCaptureDisplay)

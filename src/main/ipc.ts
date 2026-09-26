@@ -1,4 +1,4 @@
-import { app, ipcMain, type BrowserWindow } from 'electron'
+import { app, dialog, ipcMain, type BrowserWindow } from 'electron'
 import { writeFile } from 'fs/promises'
 import { join } from 'path'
 import { IpcChannel } from '@shared/ipc'
@@ -75,6 +75,19 @@ export function registerIpcHandlers(ctx: IpcContext): void {
   })
 
   ipcMain.handle(IpcChannel.DebugCaptureDisplay, () => captureDisplayWindow(ctx.displayWin))
+
+  ipcMain.handle(IpcChannel.MediaPickFile, async () => {
+    const result = await dialog.showOpenDialog(ctx.controlWin, {
+      properties: ['openFile'],
+      filters: [{ name: 'Media', extensions: ['mp4', 'webm', 'gif', 'png', 'jpg', 'jpeg'] }]
+    })
+    return result.canceled ? null : (result.filePaths[0] ?? null)
+  })
+
+  ipcMain.handle(IpcChannel.MediaPickFolder, async () => {
+    const result = await dialog.showOpenDialog(ctx.controlWin, { properties: ['openDirectory'] })
+    return result.canceled ? null : (result.filePaths[0] ?? null)
+  })
 }
 
 export async function captureDisplayWindow(win: BrowserWindow): Promise<{ filePath: string }> {

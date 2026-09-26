@@ -11,6 +11,9 @@ import {
   captureDisplayWindow,
   registerIpcHandlers
 } from './ipc'
+import { registerMediaProtocolHandler, registerMediaProtocolScheme } from './protocol'
+
+registerMediaProtocolScheme()
 
 const gotLock = app.requestSingleInstanceLock()
 if (!gotLock) {
@@ -27,6 +30,7 @@ if (!gotLock) {
 
   app.whenReady().then(() => {
     electronApp.setAppUserModelId('com.zedhand.minidisplay')
+    registerMediaProtocolHandler()
 
     app.on('browser-window-created', (_event, window) => {
       optimizer.watchWindowShortcuts(window)
