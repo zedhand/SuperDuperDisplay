@@ -206,6 +206,23 @@ installed it for real (`/S` silent install, to
     column (6-8 widgets, bars and gauges) and the full-bleed zone
     (8 widgets, bars) — no overflow, no wrapping, no clipping in
     either case.
+  - **Fourth round: the auto-scaling grid was right, the row layout
+    itself wasn't** (`8c36eb7`). Bars/compact used a single
+    "label ... value" line with `justify-content: space-between`,
+    which put the value right up against the *next* column's label
+    with no breathing room — read as crowded/misaligned even with a
+    correctly-sized grid underneath. Compact was worse: when its
+    font-size estimate didn't quite fit, the label wrapped onto two
+    lines with nothing clipping it, so it visually overlapped the
+    row above/below — genuinely scattered text, not just a style
+    complaint. Redesigned both as left-aligned stacked tiles (label
+    small/muted above, value large/bold below, bar under that for
+    bars), and added `whiteSpace:nowrap` + `overflow:hidden` +
+    `textOverflow:ellipsis` to every label/value as a hard backstop —
+    no font-size estimate is ever perfect, so worst case now is a
+    clean "…" truncation instead of wrapping into a neighbor. Verified
+    all four combinations (bars/compact × narrow 30% zone/full-bleed
+    zone) via CDP screenshot on the real installed build.
 
 ### Next up
 
