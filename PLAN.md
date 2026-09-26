@@ -42,6 +42,15 @@ installed it for real (`/S` silent install, to
   content regardless of z-order/occlusion — more reliable than
   `SetForegroundWindow`, which Windows silently no-ops for a
   non-foreground caller.
+  **Update:** `PrintWindow` later turned out to be unreliable against
+  this window specifically — it started returning solid black on some
+  runs (a GPU-compositing/DirectComposition quirk, not a real
+  rendering failure) and caused a false alarm chasing a phantom bug.
+  **Launch the app with `--remote-debugging-port=9222` and use Chrome
+  DevTools Protocol instead** (`Runtime.evaluate` to check real DOM
+  content/values, `Page.captureScreenshot` for a trustworthy image) —
+  it reads straight from Chromium's own compositor, not a native
+  window capture API, so it doesn't have this failure mode.
 - With `display.match` pointed at the real panel, captured the display
   window's content directly off that panel: confirmed correct blank
   (black) rendering on the default preset, then switched to the
@@ -96,22 +105,78 @@ installed it for real (`/S` silent install, to
     (constant-time compare). QR code (`qrcode` pkg) encodes the LAN
     URL with the token baked in. *Verified live end-to-end*: curl'd
     the HTTP auth paths (403 on missing/wrong token, 200 on correct),
-    and drove a raw `ws` client through the full round trip —
-    connected with the token, received the initial state push, sent
-    `setMode: black`, and confirmed the server broadcast back
-    `mode: "black"` (i.e. a remote client actually changed the running
-    app's display mode, not just the UI's idea of it).
+    drove a raw `ws` client through the full round trip (connected
+    with the token, received the initial state push, sent
+    `setMode: black`, confirmed the server broadcast back
+    `mode: "black"`), and finally **smoke-tested from the user's actual
+    phone on the real home Wi-Fi against the installed release build**
+    — scanned the QR code, switched presets from the phone, confirmed
+    on the real panel. (`1d5d901` fixed `getLanAddress()` first: it was
+    picking a Tailscale IP over the real Ethernet adapter, which the
+    phone couldn't have reached at all.)
+  - **Dogfooding feedback on the stats zone, acted on immediately**
+    (`237dcc7`, `2fc6ccf`, `0b6b28b`): with the panel actually mounted
+    and visible, the user reported the stats text/gauges were too
+    small and CPU Clock/GPU Clock were missing. Two real fixes, plus
+    one bug found while verifying them:
+    - `StatsZone.tsx` was sized entirely in fixed pixels (72px gauges,
+      14px text) with no regard for the panel's actual physical size —
+      switched to CSS container queries (`container-type: size` on the
+      zone root, `cqmin`-based `clamp()` everywhere else) so it scales
+      to whatever box it's actually given.
+    - The default `stats-only` preset was missing `cpuClockMHz` /
+      `gpuClockMHz` even though both were already-defined metrics —
+      added them (8 widgets total now).
+    - **CPU Temp reads `—`**: not a bug — confirmed live
+      (`curl localhost:8085` refused, not in the process list) that
+      LibreHardwareMonitor, the only source `lhm.ts` has for CPU temp,
+      isn't installed/running on this machine. Flagged to the user,
+      not fixed (installing third-party software needs their say-so).
+    - While rebuilding to verify the sizing fix, a native
+      `PrintWindow`-based screenshot came back solid black on the
+      *production* build specifically. Chasing it with Chrome DevTools
+      Protocol (see the verification-methodology note above) found the
+      real bug: `Stage.tsx` only ever subscribed to the
+      config-changed *push* channel; the main process sends the
+      initial config exactly once, on that window's own
+      `did-finish-load`, with no retry if the renderer's `useEffect`
+      hadn't registered its listener yet. A bigger production bundle
+      taking longer to parse than dev's unbundled ESM modules made
+      that race losable in practice — the window would render nothing
+      until some unrelated config change happened to broadcast again.
+      Fixed by having the display window actively fetch the current
+      config on mount (`window.display.getConfig()`, new), matching
+      what the control window's config store already did for
+      `window.control.config`. This was a latent bug since Phase 1,
+      unrelated to the stats changes that led to finding it.
 
 ### Next up
 
-The "first test release" milestone is reached: a real signed-less
-Windows build is installed on this machine and confirmed driving the
-real ZL480X1920 panel with live content. What's still open:
+The "first test release" milestone is fully reached: a real
+signed-less Windows build is installed on this machine, confirmed
+driving the real ZL480X1920 panel with live content, **and** the
+Remote page has been smoke-tested from an actual phone on the real
+home Wi-Fi — user confirmed preset switching worked. Along the way,
+found and fixed a real bug (`getLanAddress()` was picking a Tailscale
+IP over the real Ethernet adapter — see the Remote control entry
+above) and rebuilt/reinstalled before testing, so the fix is in the
+binary that was actually tested, not just the source.
 
-- **Smoke-test the Remote page from an actual phone** on the same LAN.
-  Only a raw `ws` script and `curl` have exercised it so far — never
-  the inline mobile HTML/JS in a real mobile browser.
-- **Dogfog it for real** — this machine is now actually configured to
+What's still open:
+
+- **CPU Temp needs LibreHardwareMonitor.** Confirmed live it's not
+  installed/running on this machine. Ask the user whether to install
+  and set it up (it needs its Remote Web Server enabled, and admin
+  rights to read most sensors), or leave CPU Temp permanently blank.
+- **Firewall rule is broader than intended.** The inbound Allow rule
+  for `MiniDisplay.exe` covers both Private and Public network
+  profiles; the user asked for Private-only, but narrowing it needs
+  an elevated (UAC) `Set-NetFirewallRule`, and that elevation prompt
+  can't be clicked non-interactively. Left as Private+Public — low
+  practical risk on a home setup, but a 10-second manual fix if it
+  matters: Windows Defender Firewall → Advanced Settings → the two
+  inbound "minidisplay.exe" rules → uncheck Public.
+- **Dogfood it for real** — this machine is now actually configured to
   drive the physical panel (see Status above). Use it for a while
   before deciding rebrand/UI overhaul scope; some of that scope may
   become obvious from actually living with it.
