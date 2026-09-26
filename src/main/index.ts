@@ -18,7 +18,8 @@ import { TelemetryService } from './telemetry'
 import { TriggerEngine } from './triggerEngine'
 import { PowerManager } from './power'
 import { TrayManager } from './tray'
-import { registerWebviewHardening } from './webSecurity'
+import { RtspManager } from './camera/rtsp'
+import { registerMediaPermissions, registerWebviewHardening } from './webSecurity'
 import { IpcChannel } from '@shared/ipc'
 
 registerMediaProtocolScheme()
@@ -40,6 +41,7 @@ if (!gotLock) {
   app.whenReady().then(() => {
     electronApp.setAppUserModelId('com.zedhand.minidisplay')
     registerMediaProtocolHandler()
+    registerMediaPermissions()
     registerWebviewHardening()
 
     app.on('browser-window-created', (_event, window) => {
@@ -100,13 +102,16 @@ if (!gotLock) {
     )
     trayManager.update(config)
 
+    const rtspManager = new RtspManager()
+
     ctx = {
       controlWin,
       displayWin,
       displayManager,
       folderSyncManager,
       telemetryService,
-      trayManager
+      trayManager,
+      rtspManager
     }
     registerIpcHandlers(ctx)
 
@@ -159,6 +164,7 @@ if (!gotLock) {
       telemetryService.stop()
       powerManager.stopIdleWatch()
       trayManager.destroy()
+      rtspManager.stopAll()
     })
   })
 

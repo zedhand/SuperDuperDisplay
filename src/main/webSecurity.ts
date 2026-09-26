@@ -1,4 +1,17 @@
-import { app } from 'electron'
+import { app, session } from 'electron'
+
+/**
+ * Electron denies every permission request (camera, mic, etc) by default.
+ * The Camera zone needs `media` for `getUserMedia` to work at all; nothing
+ * else the app loads (local files, YouTube embeds, arbitrary webviews)
+ * asks for a permission that should be silently granted, so this only
+ * allows that one.
+ */
+export function registerMediaPermissions(): void {
+  session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
+    callback(permission === 'media')
+  })
+}
 
 /**
  * Electron's documented webview hardening: strip any preload/node-

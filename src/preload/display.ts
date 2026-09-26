@@ -26,6 +26,11 @@ const displayApi = {
     const listener = (_event: Electron.IpcRendererEvent, state: TriggerState): void => cb(state)
     ipcRenderer.on(IpcChannel.TriggerState, listener)
     return () => ipcRenderer.removeListener(IpcChannel.TriggerState, listener)
+  },
+  rtsp: {
+    start: (url: string): Promise<{ mjpegUrl: string }> =>
+      ipcRenderer.invoke(IpcChannel.RtspStart, url),
+    stop: (url: string): Promise<void> => ipcRenderer.invoke(IpcChannel.RtspStop, url)
   }
 }
 
