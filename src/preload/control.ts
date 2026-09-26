@@ -5,6 +5,7 @@ import type {
   DisplayInfo,
   DisplayMatch,
   DisplayMode,
+  RemoteStatus,
   Rotation,
   Telemetry
 } from '@shared/types'
@@ -52,6 +53,13 @@ const controlApi = {
       ipcRenderer.on(IpcChannel.TelemetryTick, listener)
       return () => ipcRenderer.removeListener(IpcChannel.TelemetryTick, listener)
     }
+  },
+  remote: {
+    status: (): Promise<RemoteStatus> => ipcRenderer.invoke(IpcChannel.RemoteStatus),
+    setEnabled: (enabled: boolean): Promise<RemoteStatus> =>
+      ipcRenderer.invoke(IpcChannel.RemoteSetEnabled, enabled),
+    regenerateToken: (): Promise<RemoteStatus> =>
+      ipcRenderer.invoke(IpcChannel.RemoteRegenerateToken)
   },
   debug: {
     captureDisplay: (): Promise<{ filePath: string }> =>

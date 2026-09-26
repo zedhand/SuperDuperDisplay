@@ -19,6 +19,7 @@ import { TriggerEngine } from './triggerEngine'
 import { PowerManager } from './power'
 import { TrayManager } from './tray'
 import { RtspManager } from './camera/rtsp'
+import { RemoteServer } from './remote/server'
 import { registerMediaPermissions, registerWebviewHardening } from './webSecurity'
 import { IpcChannel } from '@shared/ipc'
 
@@ -104,6 +105,19 @@ if (!gotLock) {
 
     const rtspManager = new RtspManager()
 
+    const remoteServer = new RemoteServer(
+      getConfig,
+      (presetId) => broadcastConfig(ctx, setConfig({ activePresetId: presetId })),
+      (mode) => {
+        const next = setConfig({ display: { ...getConfig().display, mode } })
+        displayManager.applyMode(mode)
+        broadcastConfig(ctx, next)
+      }
+    )
+    remoteServer.applyConfig(config.remote).catch((err: Error) => {
+      console.error('[remote] failed to start on launch:', err.message)
+    })
+
     ctx = {
       controlWin,
       displayWin,
@@ -111,7 +125,8 @@ if (!gotLock) {
       folderSyncManager,
       telemetryService,
       trayManager,
-      rtspManager
+      rtspManager,
+      remoteServer
     }
     registerIpcHandlers(ctx)
 
@@ -165,6 +180,7 @@ if (!gotLock) {
       powerManager.stopIdleWatch()
       trayManager.destroy()
       rtspManager.stopAll()
+      remoteServer.stop()
     })
   })
 
