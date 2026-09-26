@@ -13,6 +13,7 @@ import {
 } from './ipc'
 import { registerMediaProtocolHandler, registerMediaProtocolScheme } from './protocol'
 import { FolderSyncManager } from './media/folderSync'
+import { TelemetryService } from './telemetry'
 import { registerWebviewHardening } from './webSecurity'
 import { IpcChannel } from '@shared/ipc'
 
@@ -57,7 +58,13 @@ if (!gotLock) {
       displayWin.webContents.send(IpcChannel.MediaFolderChanged, { folder, items })
     })
 
-    const ctx = { controlWin, displayWin, displayManager, folderSyncManager }
+    const telemetryService = new TelemetryService((telemetry) => {
+      displayWin.webContents.send(IpcChannel.TelemetryTick, telemetry)
+      controlWin?.webContents.send(IpcChannel.TelemetryTick, telemetry)
+    })
+    telemetryService.start(config.telemetry)
+
+    const ctx = { controlWin, displayWin, displayManager, folderSyncManager, telemetryService }
     registerIpcHandlers(ctx)
 
     displayWin.webContents.once('did-finish-load', () => broadcastConfig(ctx, getConfig()))
@@ -90,7 +97,10 @@ if (!gotLock) {
       }
     })
 
-    app.on('before-quit', () => folderSyncManager.stopAll())
+    app.on('before-quit', () => {
+      folderSyncManager.stopAll()
+      telemetryService.stop()
+    })
   })
 
   app.on('window-all-closed', () => {

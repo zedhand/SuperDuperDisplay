@@ -7,12 +7,14 @@ import { getActiveMediaFolders } from '@shared/layout'
 import { getConfig, setConfig } from './store'
 import type { DisplayManager } from './displayManager'
 import type { FolderSyncManager } from './media/folderSync'
+import type { TelemetryService } from './telemetry'
 
 export interface IpcContext {
   controlWin: BrowserWindow
   displayWin: BrowserWindow
   displayManager: DisplayManager
   folderSyncManager: FolderSyncManager
+  telemetryService: TelemetryService
 }
 
 export function broadcastConfig(ctx: IpcContext, config: AppConfig): void {
@@ -36,6 +38,9 @@ export function registerIpcHandlers(ctx: IpcContext): void {
     if (patch.display) {
       ctx.displayManager.retarget()
       ctx.displayManager.applyMode(next.display.mode)
+    }
+    if (patch.telemetry) {
+      ctx.telemetryService.start(next.telemetry)
     }
     broadcastConfig(ctx, next)
     return next

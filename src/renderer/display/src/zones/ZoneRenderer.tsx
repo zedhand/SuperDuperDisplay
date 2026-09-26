@@ -5,6 +5,7 @@ import { MediaZone } from './MediaZone'
 import { FolderMediaZone } from './FolderMediaZone'
 import { YoutubeZone } from './YoutubeZone'
 import { WebZone } from './WebZone'
+import { StatsZone } from './StatsZone'
 import { ZonePlaceholder } from './ZonePlaceholder'
 
 export function ZoneRenderer({ zone }: { zone: ResolvedZone }): ReactElement {
@@ -53,7 +54,7 @@ export function ZoneRenderer({ zone }: { zone: ResolvedZone }): ReactElement {
         <ZonePlaceholder label="No URL set" />
       )
     case 'stats':
-      return <ZonePlaceholder label="Hardware stats (coming soon)" />
+      return <StatsZone widgets={source.widgets} style={source.style} />
     case 'camera':
       return <ZonePlaceholder label="Camera (coming soon)" />
   }
