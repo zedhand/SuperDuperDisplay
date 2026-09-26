@@ -19,9 +19,44 @@ function safeTokenEquals(provided: string, expected: string): boolean {
   return timingSafeEqual(a, b)
 }
 
+// VPN/virtual-switch adapters commonly show up as a non-internal IPv4 too
+// (Tailscale, Hyper-V's default switch, etc), but a phone on the same Wi-Fi
+// almost never shares that network — only the real uplink is reachable from
+// it. Filtered by interface name since that's all Node exposes here.
+const VIRTUAL_ADAPTER_NAME_PATTERN =
+  /tailscale|zerotier|wireguard|openvpn|hamachi|vethernet|virtualbox|vmware|docker|wsl|npcap|ppp/i
+
+function isPrivateIPv4(address: string): boolean {
+  const parts = address.split('.').map(Number)
+  if (parts.length !== 4) return false
+  const [a, b] = parts
+  return a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168)
+}
+
+/**
+ * Best-effort guess at "the address a phone on the same Wi-Fi would use to
+ * reach this machine": skips VPN/virtual adapters by name, and prefers a
+ * plain "Ethernet"/"Wi-Fi" adapter on a standard private range over a
+ * numbered secondary one (which is often a virtual host-only adapter that
+ * happens not to match the name filter, e.g. VirtualBox's "Ethernet 3").
+ */
 function getLanAddress(): string {
-  for (const iface of Object.values(networkInterfaces())) {
-    for (const addr of iface ?? []) {
+  const candidates: Array<{ address: string; score: number }> = []
+  for (const [name, addrs] of Object.entries(networkInterfaces())) {
+    if (VIRTUAL_ADAPTER_NAME_PATTERN.test(name)) continue
+    for (const addr of addrs ?? []) {
+      if (addr.family !== 'IPv4' || addr.internal) continue
+      let score = 0
+      if (/^(Wi-Fi|Ethernet)$/i.test(name)) score += 2
+      if (isPrivateIPv4(addr.address)) score += 1
+      candidates.push({ address: addr.address, score })
+    }
+  }
+  candidates.sort((a, b) => b.score - a.score)
+  if (candidates.length > 0) return candidates[0].address
+
+  for (const addrs of Object.values(networkInterfaces())) {
+    for (const addr of addrs ?? []) {
       if (addr.family === 'IPv4' && !addr.internal) return addr.address
     }
   }
