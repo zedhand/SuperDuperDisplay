@@ -1,4 +1,4 @@
-import { type ReactElement } from 'react'
+import { useState, type ReactElement } from 'react'
 import { File, FolderOpen } from 'lucide-react'
 import type { FitMode, Preset, ZoneSource } from '@shared/types'
 import { resolveZones } from '@shared/layout'
@@ -17,6 +17,12 @@ function defaultMediaSource(source: { path?: string; folder?: string }): ZoneSou
     bgColor: '#000000'
   }
 }
+
+const TYPE_SWITCH_OPTIONS: Array<{ label: string; make: () => ZoneSource }> = [
+  { label: 'YouTube', make: () => ({ type: 'youtube', url: '' }) },
+  { label: 'Web', make: () => ({ type: 'web', url: '' }) },
+  { label: 'Blank', make: () => ({ type: 'blank' }) }
+]
 
 export function ScenesPage(): ReactElement {
   const config = useConfigStore((s) => s.config)
@@ -77,9 +83,35 @@ export function ScenesPage(): ReactElement {
               const source = zone.source
               return (
                 <div key={zone.zoneId} className="rounded-lg border border-white/10 bg-white/5 p-4">
-                  <div className="mb-2 flex items-center justify-between">
+                  <div className="mb-3 flex items-center justify-between">
                     <div className="text-sm font-medium text-white">{zone.zoneId}</div>
                     <div className="text-xs text-white/40">{source.type}</div>
+                  </div>
+
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    <button
+                      onClick={() => pickFileForZone(zone.zoneId)}
+                      className="flex w-fit items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/80 hover:border-white/20"
+                    >
+                      <File size={14} />
+                      Media file…
+                    </button>
+                    <button
+                      onClick={() => pickFolderForZone(zone.zoneId)}
+                      className="flex w-fit items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/80 hover:border-white/20"
+                    >
+                      <FolderOpen size={14} />
+                      Media folder…
+                    </button>
+                    {TYPE_SWITCH_OPTIONS.map(({ label, make }) => (
+                      <button
+                        key={label}
+                        onClick={() => setZoneSource(zone.zoneId, make())}
+                        className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/80 hover:border-white/20"
+                      >
+                        {label}
+                      </button>
+                    ))}
                   </div>
 
                   {source.type === 'media' && (
@@ -87,22 +119,6 @@ export function ScenesPage(): ReactElement {
                       <div className="truncate text-xs text-white/50">
                         {source.path ??
                           (source.folder ? `${source.folder} (folder)` : 'No media selected')}
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => pickFileForZone(zone.zoneId)}
-                          className="flex w-fit items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/80 hover:border-white/20"
-                        >
-                          <File size={14} />
-                          Pick file…
-                        </button>
-                        <button
-                          onClick={() => pickFolderForZone(zone.zoneId)}
-                          className="flex w-fit items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/80 hover:border-white/20"
-                        >
-                          <FolderOpen size={14} />
-                          Pick folder…
-                        </button>
                       </div>
 
                       {source.folder && (
@@ -182,26 +198,25 @@ export function ScenesPage(): ReactElement {
                     </div>
                   )}
 
-                  {source.type === 'blank' && (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => pickFileForZone(zone.zoneId)}
-                        className="flex w-fit items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/80 hover:border-white/20"
-                      >
-                        <File size={14} />
-                        Pick file…
-                      </button>
-                      <button
-                        onClick={() => pickFolderForZone(zone.zoneId)}
-                        className="flex w-fit items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/80 hover:border-white/20"
-                      >
-                        <FolderOpen size={14} />
-                        Pick folder…
-                      </button>
-                    </div>
+                  {source.type === 'youtube' && (
+                    <UrlField
+                      key={`${activePreset.id}-${zone.zoneId}`}
+                      placeholder="https://www.youtube.com/watch?v=…"
+                      value={source.url}
+                      onCommit={(url) => setZoneSource(zone.zoneId, { type: 'youtube', url })}
+                    />
                   )}
 
-                  {source.type !== 'media' && source.type !== 'blank' && (
+                  {source.type === 'web' && (
+                    <UrlField
+                      key={`${activePreset.id}-${zone.zoneId}`}
+                      placeholder="https://example.com/dashboard"
+                      value={source.url}
+                      onCommit={(url) => setZoneSource(zone.zoneId, { ...source, url })}
+                    />
+                  )}
+
+                  {(source.type === 'stats' || source.type === 'camera') && (
                     <div className="text-xs text-white/40">Editable in a later phase.</div>
                   )}
                 </div>
@@ -211,5 +226,31 @@ export function ScenesPage(): ReactElement {
         </section>
       )}
     </div>
+  )
+}
+
+function UrlField({
+  value,
+  placeholder,
+  onCommit
+}: {
+  value: string
+  placeholder: string
+  onCommit: (value: string) => void
+}): ReactElement {
+  const [draft, setDraft] = useState(value)
+
+  return (
+    <input
+      type="text"
+      value={draft}
+      placeholder={placeholder}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => onCommit(draft)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') onCommit(draft)
+      }}
+      className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30"
+    />
   )
 }

@@ -3,6 +3,8 @@ import type { ResolvedZone } from '@shared/types'
 import { mediaKindFromPath, toMediaUrl } from '@shared/media'
 import { MediaZone } from './MediaZone'
 import { FolderMediaZone } from './FolderMediaZone'
+import { YoutubeZone } from './YoutubeZone'
+import { WebZone } from './WebZone'
 import { ZonePlaceholder } from './ZonePlaceholder'
 
 export function ZoneRenderer({ zone }: { zone: ResolvedZone }): ReactElement {
@@ -39,9 +41,17 @@ export function ZoneRenderer({ zone }: { zone: ResolvedZone }): ReactElement {
     case 'blank':
       return <div style={{ width: '100%', height: '100%', background: '#000' }} />
     case 'youtube':
-      return <ZonePlaceholder label="YouTube (coming soon)" />
+      return source.url ? (
+        <YoutubeZone url={source.url} />
+      ) : (
+        <ZonePlaceholder label="No YouTube URL set" />
+      )
     case 'web':
-      return <ZonePlaceholder label="Web embed (coming soon)" />
+      return source.url ? (
+        <WebZone url={source.url} css={source.css} />
+      ) : (
+        <ZonePlaceholder label="No URL set" />
+      )
     case 'stats':
       return <ZonePlaceholder label="Hardware stats (coming soon)" />
     case 'camera':
