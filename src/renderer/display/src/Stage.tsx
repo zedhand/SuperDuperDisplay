@@ -18,7 +18,15 @@ const NEUTRAL_COLOR_PROFILE: ColorProfile = {
 export function Stage(): ReactElement | null {
   const [config, setConfig] = useState<AppConfig | null>(null)
 
-  useEffect(() => window.display.onConfigChanged(setConfig), [])
+  useEffect(() => {
+    // The main process only pushes on config changes (and once, on its own
+    // did-finish-load) — if this component hasn't subscribed by the time
+    // that fires, the initial config is missed for good. Actively fetching
+    // it here as well closes that race, same as the control window already
+    // does for window.control.config.
+    window.display.getConfig().then(setConfig)
+    return window.display.onConfigChanged(setConfig)
+  }, [])
 
   if (!config) return null
   if (config.display.mode === 'hidden') return null
