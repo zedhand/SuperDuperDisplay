@@ -7,6 +7,37 @@ function formatValue(value: number | null, unit: string): string {
   return `${Math.round(value)}${unit}`
 }
 
+/**
+ * A label or value is a single unbreakable run of text, so no amount of
+ * font-size guessing from character counts is bulletproof — an unusually
+ * long label at an unlucky size could still overflow. `nowrap` + ellipsis
+ * is the hard backstop: worst case it truncates cleanly instead of
+ * wrapping into (and visually overlapping) whatever's in the next cell,
+ * which is what an unclipped multi-line wrap actually did before this.
+ */
+function ellipsisStyle(cqh: number, cqw: number, min: number, max: number): CSSProperties {
+  return {
+    fontSize: `max(${min}px, min(${cqh}cqh, ${cqw}cqw, ${max}px))`,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    maxWidth: '100%'
+  }
+}
+
+const BAR_LABEL_STYLE: CSSProperties = { ...ellipsisStyle(18, 14, 9, 28), color: '#aaa' }
+const BAR_VALUE_STYLE: CSSProperties = {
+  ...ellipsisStyle(38, 18, 16, 88),
+  color: '#fff',
+  fontWeight: 700
+}
+const COMPACT_LABEL_STYLE: CSSProperties = { ...ellipsisStyle(22, 16, 9, 32), color: '#aaa' }
+const COMPACT_VALUE_STYLE: CSSProperties = {
+  ...ellipsisStyle(48, 20, 18, 96),
+  color: '#fff',
+  fontWeight: 700
+}
+
 /** Measures an element's rendered pixel size, updating on resize. */
 function useElementSize<T extends HTMLElement>(): [
   (node: T | null) => void,
@@ -77,33 +108,24 @@ function BarRow({
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
-        gap: 'clamp(4px, 6cqh, 20px)',
+        gap: 'clamp(2px, 4cqh, 10px)',
         minWidth: 0,
         minHeight: 0,
+        overflow: 'hidden',
         containerType: 'size'
       }}
     >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          // A label + value ("GPU Clock" / "3800MHz") is unbreakable text
-          // sharing one row, so its size has to respect the row's width too
-          // — cqh alone let it fit height-wise while still overflowing a
-          // narrow column horizontally.
-          fontSize: 'max(11px, min(38cqh, 11cqw, 96px))',
-          color: '#ccc'
-        }}
-      >
-        <span>{def.label}</span>
-        <span style={{ color: '#fff', fontWeight: 600 }}>{formatValue(value, def.unit)}</span>
+      <div style={BAR_LABEL_STYLE}>{def.label}</div>
+      <div style={{ ...BAR_VALUE_STYLE, marginBottom: 'clamp(2px, 2cqh, 8px)' }}>
+        {formatValue(value, def.unit)}
       </div>
       <div
         style={{
-          height: 'clamp(6px, 14cqh, 36px)',
+          height: 'clamp(6px, 12cqh, 28px)',
           borderRadius: 999,
           background: 'rgba(255,255,255,0.1)',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          flexShrink: 0
         }}
       >
         <div
@@ -144,6 +166,7 @@ function GaugeRow({
         gap: 'clamp(4px, 3cqh, 24px)',
         minWidth: 0,
         minHeight: 0,
+        overflow: 'hidden',
         containerType: 'size'
       }}
     >
@@ -176,9 +199,7 @@ function GaugeRow({
           {value == null ? '—' : Math.round(value)}
         </text>
       </svg>
-      <span style={{ fontSize: 'max(8px, min(14cqh, 16cqw, 40px))', color: '#ccc' }}>
-        {def.label}
-      </span>
+      <span style={{ ...ellipsisStyle(14, 16, 8, 40), color: '#ccc' }}>{def.label}</span>
     </div>
   )
 }
@@ -198,25 +219,26 @@ function CompactRow({
     <div
       style={{
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        fontSize: 'max(11px, min(46cqh, 11cqw, 96px))',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        gap: 'clamp(2px, 4cqh, 10px)',
         minWidth: 0,
         minHeight: 0,
+        overflow: 'hidden',
         containerType: 'size'
       }}
     >
-      <span style={{ color: '#ccc' }}>{def.label}</span>
-      <span style={{ color: '#fff', fontWeight: 600 }}>{formatValue(value, def.unit)}</span>
+      <div style={COMPACT_LABEL_STYLE}>{def.label}</div>
+      <div style={COMPACT_VALUE_STYLE}>{formatValue(value, def.unit)}</div>
     </div>
   )
 }
 
 /** How much wider than tall one cell naturally wants to be, per style — used to pick a grid that fits the zone's actual shape. */
 const CELL_ASPECT: Record<'bars' | 'gauges' | 'compact', number> = {
-  bars: 3.2,
+  bars: 1.8, // stacked label/value/bar — only needs to fit one string's width at a time
   gauges: 0.85,
-  compact: 5
+  compact: 2.4 // stacked label/value, no bar
 }
 
 export function StatsZone({
