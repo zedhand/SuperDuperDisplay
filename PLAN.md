@@ -14,7 +14,42 @@ is arranged into resizable zones per layout, each zone showing one of:
 local media, a media folder playlist, YouTube, a web page, live
 hardware telemetry, or a camera feed (USB webcam or RTSP).
 
-## Status: Phase 4 (Automation and integration) — done and committed
+## Status: first real Windows release built and confirmed on real hardware
+
+The real physical panel is connected: Windows sees it as display
+**ZL480X1920** (1920×480, landscape, at `(2560, 0)`) alongside two
+other monitors. `%APPDATA%/minidisplay/config.json` on this machine
+now has `display.match` pointing at it (`simulate: false`) and
+`activePresetId: "stats-only"` — i.e. this machine's install is
+*actually driving the real hardware right now*, not simulating.
+
+Built `dist/minidisplay-1.0.0-setup.exe` via `npm run build:win`,
+installed it for real (`/S` silent install, to
+`%LOCALAPPDATA%/Programs/minidisplay`), and verified against the
+**installed production build**, not the dev server:
+- Confirmed `MiniDisplay.exe` and `Uninstall MiniDisplay.exe` are
+  named correctly (this is what the `electron-builder.yml` corruption
+  fix actually gated).
+- **Installer is not code-signed** (`Get-AuthenticodeSignature` →
+  `NotSigned`). Windows SmartScreen will warn on first run for anyone
+  who isn't the person who built it. Expected for now; a real cert is
+  a separate future step if this ever leaves this machine.
+- Since there's no desktop click-automation tool, verified the running
+  windows directly via a small Win32 helper (`user32.dll`
+  `EnumWindows`/`GetWindowRect`/`PrintWindow` through PowerShell
+  `Add-Type`) rather than fighting window-occlusion/foreground-lock
+  with a full-desktop screenshot. `PrintWindow` grabs a window's actual
+  content regardless of z-order/occlusion — more reliable than
+  `SetForegroundWindow`, which Windows silently no-ops for a
+  non-foreground caller.
+- With `display.match` pointed at the real panel, captured the display
+  window's content directly off that panel: confirmed correct blank
+  (black) rendering on the default preset, then switched to the
+  `stats-only` preset and confirmed **live telemetry actually rendering
+  on the real hardware** (gauges showing real GPU temp/load/VRAM/RAM
+  numbers, not a static/crashed frame).
+- Left the app running post-verification — it's meant to run
+  continuously, so there's no reason to kill it.
 
 ### Done
 
@@ -69,13 +104,20 @@ hardware telemetry, or a camera feed (USB webcam or RTSP).
 
 ### Next up
 
-- Phase 4 is functionally done — that's the "first test release"
-  milestone. Before actually cutting a test release: smoke-test the
-  Remote page's mobile page against a real phone on the same LAN (only
-  a raw `ws` client and `curl` have exercised it so far, not the
-  inline mobile HTML/JS itself in a real mobile browser), and decide
-  if a release build (`npm run build:win`) is wanted yet or if more
-  manual dogfooding on the real hardware comes first.
+The "first test release" milestone is reached: a real signed-less
+Windows build is installed on this machine and confirmed driving the
+real ZL480X1920 panel with live content. What's still open:
+
+- **Smoke-test the Remote page from an actual phone** on the same LAN.
+  Only a raw `ws` script and `curl` have exercised it so far — never
+  the inline mobile HTML/JS in a real mobile browser.
+- **Dogfog it for real** — this machine is now actually configured to
+  drive the physical panel (see Status above). Use it for a while
+  before deciding rebrand/UI overhaul scope; some of that scope may
+  become obvious from actually living with it.
+- Decide when to move on to **rebrand** and/or **UI overhaul** (see
+  below) — the user said these wait until after this milestone, which
+  just landed, so this is now a real decision point, not a deferred one.
 
 ### Not yet started / explicitly deferred
 
