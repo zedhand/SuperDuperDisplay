@@ -20,7 +20,11 @@ import { PowerManager } from './power'
 import { TrayManager } from './tray'
 import { RtspManager } from './camera/rtsp'
 import { RemoteServer } from './remote/server'
-import { registerMediaPermissions, registerWebviewHardening } from './webSecurity'
+import {
+  registerMediaPermissions,
+  registerWebviewHardening,
+  registerYoutubeEmbedReferer
+} from './webSecurity'
 import { IpcChannel } from '@shared/ipc'
 
 registerMediaProtocolScheme()
@@ -44,6 +48,7 @@ if (!gotLock) {
     registerMediaProtocolHandler()
     registerMediaPermissions()
     registerWebviewHardening()
+    registerYoutubeEmbedReferer()
 
     app.on('browser-window-created', (_event, window) => {
       optimizer.watchWindowShortcuts(window)
