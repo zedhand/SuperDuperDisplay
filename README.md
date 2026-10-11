@@ -1,9 +1,28 @@
+<p align="center"><img src="docs/icon.png" width="96" alt="SuperDuperDisplay icon"></p>
+
 # SuperDuperDisplay
 
-**Driver app for a case-mounted secondary display.**
+**Turn the spare screen in your PC case into a live dashboard.**
 
-> 🚧 **Pre-release.** Every feature described below is built and working, but this hasn't been
-> through a real first test release yet — see [`PLAN.md`](PLAN.md) for current status.
+[**⬇ Download the beta**](https://github.com/zedhand/SuperDuperDisplay/releases) ·
+[Website](https://zedhand.github.io/SuperDuperDisplay/) ·
+[Report a bug](https://github.com/zedhand/SuperDuperDisplay/issues)
+
+> 🧪 **Beta.** SuperDuperDisplay (formerly MiniDisplay) is in public beta on Windows. Every
+> feature below works, but expect rough edges. Bug reports are very welcome. Existing MiniDisplay
+> setups are carried over automatically on first launch.
+
+![A case-mounted 1920×480 panel showing a clock, gauges, and live hardware stats](docs/screenshots/display.png)
+
+## Getting started
+
+1. Grab the latest `superduperdisplay-<version>-setup.exe` from the
+   [releases page](https://github.com/zedhand/SuperDuperDisplay/releases) and run it.
+   The installer isn't code-signed yet, so Windows SmartScreen may warn you: choose
+   **More info → Run anyway**.
+2. On the **Displays** page, pick the screen in your case (or use **Simulated screen** to try it
+   without one).
+3. Build a scene on the **Scenes** page and watch it appear in the live preview.
 
 ## What it is
 
@@ -70,6 +89,14 @@ files so you're not always starting from the OS file dialog. Export/import the w
 
 **🌗 Theming** — An accent-color picker and a light/dark toggle for the control app's own chrome
 (the display output itself always renders exactly what a scene is configured to show).
+
+## Screenshots
+
+| Scenes and zones                                        | Triggers                                                |
+| ------------------------------------------------------- | ------------------------------------------------------- |
+| ![Scenes page](docs/screenshots/control-scenes.png)     | ![Triggers page](docs/screenshots/control-triggers.png) |
+| **Display targeting**                                   | **Settings**                                            |
+| ![Displays page](docs/screenshots/control-displays.png) | ![Settings page](docs/screenshots/control-settings.png) |
 
 ## For developers
 
