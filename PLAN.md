@@ -2054,3 +2054,22 @@ control-window changes:
 - Replaced the stale `buildYoutubeEmbedUrl` test (that function was
   removed when the relay landed) with one covering
   `buildYoutubeEmbedRelayUrl`.
+
+## Tune-up: Electron 44, scoped camera permission (2026-10-11)
+
+- **Electron 39 → 44.** 39 was out of support and carried four high
+  Electron advisories (including `<webview>` sandbox/node-integration
+  escapes, which matter here since Web zones load arbitrary sites) plus
+  the `extract-zip` one flagged in housekeeping above. `npm audit` now
+  reports no high-severity issues; 8 moderate remain, all in build
+  tooling. `allowScripts` updated to `electron@44.7.0` so the binary's
+  install script still runs. Verified in the cloud only: build,
+  57/57 tests, typecheck, lint, and a headless Linux launch where both
+  the control and display windows rendered. Not yet run on the real
+  Windows install.
+- **Camera/mic permission scoped to the app's own windows.** Electron
+  grants permission requests by default and the old handler allowed
+  `media` for any webContents, so a site in a Web zone (a `<webview>`
+  on the shared default session) silently got camera and mic access.
+  Now `media` is granted only when `webContents.getType() === 'window'`.
+- Removed the unused `ComingSoon` page; every sidebar page is real.

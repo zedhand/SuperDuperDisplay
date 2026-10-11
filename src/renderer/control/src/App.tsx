@@ -11,13 +11,10 @@ import { ColorPage } from './pages/Color'
 import { TriggersPage } from './pages/Triggers'
 import { RemotePage } from './pages/Remote'
 import { SettingsPage } from './pages/Settings'
-import { ComingSoonPage } from './pages/ComingSoon'
 import { UndoToast } from './components/UndoToast'
 import { initConfigStore, useConfigStore } from './store/useConfigStore'
 
-const COMING_SOON: Partial<Record<PageId, string>> = {}
-
-const PAGE_COMPONENTS: Partial<Record<PageId, () => ReactElement>> = {
+const PAGE_COMPONENTS: Record<PageId, () => ReactElement> = {
   displays: DisplaysPage,
   scenes: ScenesPage,
   layout: LayoutPage,
@@ -49,11 +46,7 @@ function App(): ReactElement {
     >
       <Sidebar active={page} onSelect={setPage} />
       <main className="flex-1 overflow-y-auto">
-        {PageComponent ? (
-          <PageComponent />
-        ) : (
-          <ComingSoonPage title={page} phase={COMING_SOON[page] ?? 'a later phase'} />
-        )}
+        <PageComponent />
       </main>
       {previewOpen ? (
         <aside className="flex w-72 flex-col gap-3 border-l border-[var(--border-1)] bg-[var(--surface-0)] p-4">
