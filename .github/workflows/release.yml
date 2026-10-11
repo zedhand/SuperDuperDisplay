@@ -3,6 +3,10 @@ name: Release
 # Builds the Windows installer and publishes it as a GitHub release.
 # Run it from the Actions tab (or push a v* tag). The app version comes from
 # the tag, so package.json doesn't need bumping for each beta.
+#
+# Code signing: add the repository secrets WIN_CSC_LINK (the .pfx file,
+# base64-encoded) and WIN_CSC_KEY_PASSWORD. Without them the installer is
+# built unsigned.
 on:
   push:
     tags: ['v*']
@@ -42,6 +46,9 @@ jobs:
       - run: npm test
 
       - name: Build installer
+        env:
+          CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
         run: npm run build:win -- --publish never
 
       - name: Publish release
@@ -51,4 +58,6 @@ jobs:
         run: |
           flags=(--title "SuperDuperDisplay $TAG" --generate-notes --target "$GITHUB_SHA")
           if [[ "$TAG" == *-* || "${{ inputs.prerelease }}" == "true" ]]; then flags+=(--prerelease); fi
-          gh release create "$TAG" dist/*-setup.exe dist/*-setup.exe.blockmap "${flags[@]}"
+          # latest.yml / beta.yml are what installed copies read to find updates.
+          gh release create "$TAG" dist/*-setup.exe dist/*-setup.exe.blockmap \
+            $(ls dist/*.yml | grep -v builder-debug) "${flags[@]}"
