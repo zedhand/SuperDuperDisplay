@@ -1,15 +1,16 @@
 import { app, session } from 'electron'
 
 /**
- * Electron denies every permission request (camera, mic, etc) by default.
- * The Camera zone needs `media` for `getUserMedia` to work at all; nothing
- * else the app loads (local files, YouTube embeds, arbitrary webviews)
- * asks for a permission that should be silently granted, so this only
- * allows that one.
+ * Electron grants permission requests (camera, mic, etc) by default. The
+ * Camera zone and the control window's camera picker need `media` for
+ * `getUserMedia`, so that one is allowed, but only for the app's own
+ * windows: Web and YouTube zones are <webview>s sharing this same session,
+ * and a site typed into a Web zone must not get silent camera/mic access.
+ * Everything else is denied.
  */
 export function registerMediaPermissions(): void {
-  session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
-    callback(permission === 'media')
+  session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+    callback(permission === 'media' && webContents.getType() === 'window')
   })
 }
 
