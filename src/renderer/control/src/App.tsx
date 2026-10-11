@@ -43,7 +43,10 @@ function App(): ReactElement {
       className="flex h-screen w-screen bg-[var(--bg-app)]"
       style={
         config
-          ? { ...computeThemeVars(config.app.theme), ...computeAccentVars(config.app.accentColor) }
+          ? {
+              ...computeThemeVars(config.app.theme),
+              ...computeAccentVars(config.app.accentColor, config.app.theme)
+            }
           : undefined
       }
     >
