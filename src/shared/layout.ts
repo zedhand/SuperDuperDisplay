@@ -1,4 +1,4 @@
-import type { AppConfig, Layout, ResolvedZone, Rotation, ZoneSource } from './types'
+import type { AppConfig, Layout, Preset, ResolvedZone, Rotation, ZoneSource } from './types'
 
 /**
  * Splits a layout into percentage rects, in reading order (left-to-right for
@@ -50,6 +50,76 @@ export function resolveZones(
       source: zoneSources[zoneId] ?? { type: 'blank' }
     }
   })
+}
+
+/**
+ * Layouts are shared by id across presets (e.g. the default "single" layout
+ * backs both "Full-bleed loop" and "Black") — mutating one in place would
+ * silently reshape every other preset that happens to reference the same
+ * layout. Clones it for this preset the moment more than one preset relies
+ * on it, so an edit only ever affects the preset being looked at. Shared by
+ * both the Layout page's drag-to-resize editor and Scenes' per-zone
+ * aspect-ratio auto-fit — getting this subtly wrong reintroduces the exact
+ * cross-preset-mutation bug this was written to fix.
+ */
+export function updateLayoutForPreset(
+  config: AppConfig,
+  activePreset: Preset,
+  layout: Layout,
+  updater: (l: Layout) => Layout
+): { layouts: Layout[]; presets: Preset[] } {
+  const sharedWithOtherPresets = config.presets.some(
+    (p) => p.id !== activePreset.id && p.layoutId === layout.id
+  )
+  if (sharedWithOtherPresets) {
+    const cloned = updater({
+      ...layout,
+      id: crypto.randomUUID(),
+      name: `${layout.name} (${activePreset.name})`
+    })
+    return {
+      layouts: [...config.layouts, cloned],
+      presets: config.presets.map((p) =>
+        p.id === activePreset.id ? { ...p, layoutId: cloned.id } : p
+      )
+    }
+  }
+  return {
+    layouts: config.layouts.map((l) => (l.id === layout.id ? updater(l) : l)),
+    presets: config.presets
+  }
+}
+
+/**
+ * Computes new `sizes` for an `h`/`v` layout so the zone at `zoneIndex`
+ * renders at exactly `targetAspect` (width/height) given the physical
+ * content pixel size, redistributing the remaining space among the other
+ * zones in their existing relative proportions. Returns `null` for
+ * `single`/`grid` splits (every zone is already full-bleed — there's
+ * nothing to resize) or an out-of-range index.
+ */
+export function computeAutoFitSizes(
+  layout: Pick<Layout, 'split' | 'sizes'>,
+  zoneIndex: number,
+  targetAspect: number,
+  contentSize: { width: number; height: number }
+): number[] | null {
+  if (layout.split !== 'h' && layout.split !== 'v') return null
+  if (zoneIndex < 0 || zoneIndex >= layout.sizes.length) return null
+  if (!Number.isFinite(targetAspect) || targetAspect <= 0) return null
+
+  const MIN_FRAC = 0.05
+  const MAX_FRAC = 0.95
+  const rawFrac =
+    layout.split === 'h'
+      ? (targetAspect * contentSize.height) / contentSize.width
+      : contentSize.width / (targetAspect * contentSize.height)
+  const frac = Math.min(MAX_FRAC, Math.max(MIN_FRAC, rawFrac))
+
+  const others = layout.sizes.filter((_, i) => i !== zoneIndex)
+  const othersTotal = others.reduce((sum, s) => sum + s, 0) || 1
+  const remaining = 1 - frac
+  return layout.sizes.map((s, i) => (i === zoneIndex ? frac : (s / othersTotal) * remaining))
 }
 
 /** Swaps width/height for 90/270 rotations, since the content is drawn in "unrotated" logical space and then CSS-rotated onto the physical panel. */

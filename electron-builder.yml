@@ -1,5 +1,5 @@
-appId: com.electron.app
-productName: MiniDisplay
+appId: com.zedhand.superduperdisplay
+productName: SuperDuperDisplay
 directories:
   buildResources: build
 files:
@@ -12,7 +12,7 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: MiniDisplay
+  executableName: SuperDuperDisplay
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}

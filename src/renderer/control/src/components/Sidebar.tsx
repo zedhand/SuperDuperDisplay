@@ -29,16 +29,18 @@ export function Sidebar({
   onSelect: (id: PageId) => void
 }): ReactElement {
   return (
-    <nav className="flex w-56 flex-col gap-1 border-r border-white/10 bg-black/30 p-3">
-      <div className="mb-4 px-2 text-sm font-semibold tracking-wide text-white/70">MiniDisplay</div>
+    <nav className="flex w-56 flex-col gap-1 border-r border-[var(--border-1)] bg-[var(--surface-sidebar)] p-3">
+      <div className="mb-4 px-2 text-sm font-semibold tracking-wide text-[var(--text-3)]">
+        SuperDuperDisplay
+      </div>
       {PAGES.map(({ id, label, icon: Icon }) => (
         <button
           key={id}
           onClick={() => onSelect(id)}
           className={`flex items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors ${
             active === id
-              ? 'bg-fuchsia-500/20 text-fuchsia-300'
-              : 'text-white/70 hover:bg-white/5 hover:text-white'
+              ? 'bg-[var(--accent-bg-strong)] text-[var(--accent-light)]'
+              : 'text-[var(--text-3)] hover:bg-[var(--surface-1)] hover:text-[var(--text-1)]'
           }`}
         >
           <Icon size={16} />
