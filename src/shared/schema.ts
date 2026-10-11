@@ -81,6 +81,21 @@ const zoneSourceSchema: z.ZodType<ZoneSource> = z.lazy(() =>
       icsUrl: z.string().optional()
     }),
     z.object({
+      type: z.literal('weather'),
+      location: z.string(),
+      units: z.enum(['metric', 'imperial']).default('metric'),
+      color: z.string(),
+      showForecast: z.boolean().default(true)
+    }),
+    z.object({
+      type: z.literal('rss'),
+      feedUrl: z.string(),
+      mode: z.enum(['list', 'rotate']).default('list'),
+      color: z.string(),
+      maxItems: z.number().int().min(1).max(50).default(8),
+      intervalSec: z.number().min(2).default(8)
+    }),
+    z.object({
       type: z.literal('nowplaying'),
       color: z.string(),
       align: z.enum(['left', 'center', 'right'])

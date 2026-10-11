@@ -37,4 +37,26 @@ describe('appConfigSchema', () => {
     }
     expect(() => appConfigSchema.parse(bad)).toThrow()
   })
+
+  it('accepts weather and rss zones, filling defaults for older-style entries', () => {
+    const config = {
+      ...defaultConfig,
+      presets: [
+        {
+          ...defaultConfig.presets[0],
+          zones: {
+            zone0: { type: 'weather', location: 'London', color: '#ffffff' },
+            zone1: { type: 'rss', feedUrl: 'https://example.com/feed', color: '#ffffff' }
+          }
+        }
+      ]
+    }
+    const parsed = appConfigSchema.parse(config)
+    expect(parsed.presets[0].zones.zone0).toMatchObject({ units: 'metric', showForecast: true })
+    expect(parsed.presets[0].zones.zone1).toMatchObject({
+      mode: 'list',
+      maxItems: 8,
+      intervalSec: 8
+    })
+  })
 })
