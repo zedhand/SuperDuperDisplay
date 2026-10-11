@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildYoutubeEmbedUrl, extractYoutubeId } from '../src/shared/youtube'
+import { buildYoutubeEmbedRelayUrl, extractYoutubeId } from '../src/shared/youtube'
 
 describe('extractYoutubeId', () => {
   it('extracts the id from a standard watch URL', () => {
@@ -36,14 +36,11 @@ describe('extractYoutubeId', () => {
   })
 })
 
-describe('buildYoutubeEmbedUrl', () => {
-  it('builds a chromeless autoplay/mute/loop embed URL with the playlist quirk applied', () => {
-    const url = buildYoutubeEmbedUrl('dQw4w9WgXcQ')
-    expect(url).toContain('youtube-nocookie.com/embed/dQw4w9WgXcQ')
-    expect(url).toContain('autoplay=1')
-    expect(url).toContain('mute=1')
-    expect(url).toContain('loop=1')
-    expect(url).toContain('playlist=dQw4w9WgXcQ')
-    expect(url).toContain('controls=0')
+describe('buildYoutubeEmbedRelayUrl', () => {
+  it('points at the GitHub Pages relay with the video id and starting volume', () => {
+    const url = buildYoutubeEmbedRelayUrl('dQw4w9WgXcQ', 40)
+    expect(url).toBe(
+      'https://zedhand.github.io/superduperdisplay-yt-embed/?v=dQw4w9WgXcQ&volume=40'
+    )
   })
 })

@@ -2,6 +2,43 @@
 
 :root {
   color-scheme: dark;
+  /* Plain fallback values, only visible before config has loaded — the
+     real values come from App.tsx's `computeAccentVars()`, set as inline
+     custom properties on the app root every render from
+     config.app.accentColor. Deliberately plain rgb()/rgba() here, not
+     color-mix(): Tailwind v4's CSS processor (Lightning CSS) rewrites
+     color-mix() into a plain-value fallback plus an `@supports`-gated
+     override, both scoped only to `:root` — confirmed live that overriding
+     just `--accent` on a descendant element then did *not* make those
+     `:root`-only derived properties re-resolve against the override, so
+     the whole accent-color feature silently failed to reflect a new
+     color. Every shade is computed directly in JS instead; see
+     components/../lib/accent.ts's doc comment for the full story. */
+  --accent: #d946ef;
+  --accent-light: #ea9df8;
+  --accent-border: rgba(234, 157, 248, 0.6);
+  --accent-border-soft: rgba(234, 157, 248, 0.4);
+  --accent-bg: rgba(217, 70, 239, 0.1);
+  --accent-bg-strong: rgba(217, 70, 239, 0.2);
+
+  /* Same story as the accent shades above, computed by
+     lib/theme.ts's computeThemeVars() from config.app.theme — these are
+     just the dark-theme fallback defaults visible before config loads. */
+  --bg-app: #0b0b0f;
+  --surface-0: rgba(255, 255, 255, 0.02);
+  --surface-1: rgba(255, 255, 255, 0.05);
+  --surface-2: rgba(255, 255, 255, 0.1);
+  --surface-3: rgba(255, 255, 255, 0.2);
+  --surface-sidebar: rgba(0, 0, 0, 0.3);
+  --surface-popover: #15151b;
+  --border-1: rgba(255, 255, 255, 0.1);
+  --border-2: rgba(255, 255, 255, 0.2);
+  --text-1: #ffffff;
+  --text-2: rgba(255, 255, 255, 0.8);
+  --text-3: rgba(255, 255, 255, 0.7);
+  --text-4: rgba(255, 255, 255, 0.5);
+  --text-5: rgba(255, 255, 255, 0.4);
+  --text-6: rgba(255, 255, 255, 0.3);
 }
 
 body {

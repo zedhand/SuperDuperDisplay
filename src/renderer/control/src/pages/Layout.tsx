@@ -1,5 +1,6 @@
 import { useRef, useState, type ReactElement } from 'react'
 import type { Layout } from '@shared/types'
+import { updateLayoutForPreset } from '@shared/layout'
 import { useConfigStore } from '../store/useConfigStore'
 
 const SPLIT_OPTIONS: Array<{ id: Layout['split']; label: string }> = [
@@ -15,44 +16,20 @@ export function LayoutPage(): ReactElement {
   const config = useConfigStore((s) => s.config)
   const patch = useConfigStore((s) => s.patch)
 
-  if (!config) return <div className="p-6 text-white/50">Loading…</div>
+  if (!config) return <div className="p-6 text-[var(--text-4)]">Loading…</div>
 
   const activePreset = config.presets.find((p) => p.id === config.activePresetId)
   const activeLayout = activePreset && config.layouts.find((l) => l.id === activePreset.layoutId)
 
   if (!activePreset || !activeLayout) {
-    return <div className="p-6 text-white/50">No active preset.</div>
+    return <div className="p-6 text-[var(--text-4)]">No active scene.</div>
   }
 
   const layout: Layout = activeLayout
 
-  // Layouts are shared by id across presets (e.g. the default "single"
-  // layout backs both "Full-bleed loop" and "Black"). Mutating one in
-  // place — which is what this editor otherwise does — would silently
-  // reshape every other preset that happens to reference the same
-  // layout. Clone it for this preset the moment more than one preset
-  // relies on it, so editing here only ever affects the preset you're
-  // looking at.
   function updateLayout(updater: (l: Layout) => Layout): void {
     if (!config || !activePreset) return
-    const sharedWithOtherPresets = config.presets.some(
-      (p) => p.id !== activePreset.id && p.layoutId === layout.id
-    )
-    if (sharedWithOtherPresets) {
-      const cloned = updater({
-        ...layout,
-        id: crypto.randomUUID(),
-        name: `${layout.name} (${activePreset.name})`
-      })
-      patch({
-        layouts: [...config.layouts, cloned],
-        presets: config.presets.map((p) =>
-          p.id === activePreset.id ? { ...p, layoutId: cloned.id } : p
-        )
-      })
-    } else {
-      patch({ layouts: config.layouts.map((l) => (l.id === layout.id ? updater(l) : l)) })
-    }
+    patch(updateLayoutForPreset(config, activePreset, layout, updater))
   }
 
   function setSplit(split: Layout['split']): void {
@@ -71,10 +48,25 @@ export function LayoutPage(): ReactElement {
   return (
     <div className="flex flex-col gap-6 p-6">
       <section>
-        <h2 className="mb-1 text-lg font-semibold text-white">Layout for {activePreset.name}</h2>
-        <p className="mb-3 text-xs text-white/40">
-          Switching presets on the Scenes page picks which one this editor is shaping.
+        <h2 className="mb-1 text-lg font-semibold text-[var(--text-1)]">
+          Layout for {activePreset.name}
+        </h2>
+        <p className="mb-3 text-xs text-[var(--text-5)]">
+          Switching scenes on the Scenes page picks which one this editor is shaping.
         </p>
+        <label className="mb-4 flex max-w-xs flex-col gap-1 text-xs text-[var(--text-4)]">
+          Layout name
+          <input
+            key={layout.id}
+            type="text"
+            defaultValue={layout.name}
+            onBlur={(e) => updateLayout((l) => ({ ...l, name: e.target.value || l.name }))}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') e.currentTarget.blur()
+            }}
+            className="rounded border border-[var(--border-1)] bg-[var(--surface-1)] px-2 py-1.5 text-sm text-[var(--text-1)]"
+          />
+        </label>
         <div className="flex gap-2">
           {SPLIT_OPTIONS.map(({ id, label }) => (
             <button
@@ -82,8 +74,8 @@ export function LayoutPage(): ReactElement {
               onClick={() => setSplit(id)}
               className={`rounded-md border px-4 py-2 text-sm ${
                 layout.split === id
-                  ? 'border-fuchsia-400/60 bg-fuchsia-500/10 text-fuchsia-300'
-                  : 'border-white/10 bg-white/5 text-white/70 hover:border-white/20'
+                  ? 'border-[var(--accent-border)] bg-[var(--accent-bg)] text-[var(--accent-light)]'
+                  : 'border-[var(--border-1)] bg-[var(--surface-1)] text-[var(--text-3)] hover:border-[var(--border-2)]'
               }`}
             >
               {label}
@@ -94,9 +86,9 @@ export function LayoutPage(): ReactElement {
 
       {(layout.split === 'h' || layout.split === 'v') && layout.sizes.length === 2 && (
         <section>
-          <h2 className="mb-3 text-lg font-semibold text-white">Drag to resize</h2>
+          <h2 className="mb-3 text-lg font-semibold text-[var(--text-1)]">Drag to resize</h2>
           <SplitPreview split={layout.split} sizes={layout.sizes} onRatioChange={setRatio} />
-          <p className="mt-2 text-xs text-white/40">
+          <p className="mt-2 text-xs text-[var(--text-5)]">
             zone0: {Math.round(layout.sizes[0] * 100)}% · zone1: {Math.round(layout.sizes[1] * 100)}
             %
           </p>
@@ -137,20 +129,20 @@ function SplitPreview({
       ref={containerRef}
       onPointerMove={handlePointerMove}
       onPointerUp={() => setDragging(false)}
-      className="relative h-40 w-full max-w-2xl overflow-hidden rounded-lg border border-white/10 bg-black"
+      className="relative h-40 w-full max-w-2xl overflow-hidden rounded-lg border border-[var(--border-1)] bg-black"
       style={{ display: 'flex', flexDirection: isH ? 'row' : 'column' }}
     >
       <div
-        className="flex items-center justify-center bg-fuchsia-500/10 text-xs text-fuchsia-300"
+        className="flex items-center justify-center bg-[var(--accent-bg)] text-xs text-[var(--accent-light)]"
         style={{ flexBasis: `${ratio * 100}%` }}
       >
         zone0
       </div>
       <div
         onPointerDown={handlePointerDown}
-        className={`shrink-0 bg-white/20 hover:bg-fuchsia-400/60 ${isH ? 'w-1 cursor-col-resize' : 'h-1 cursor-row-resize'}`}
+        className={`shrink-0 bg-[var(--surface-3)] hover:bg-[var(--accent-border)] ${isH ? 'w-1 cursor-col-resize' : 'h-1 cursor-row-resize'}`}
       />
-      <div className="flex flex-1 items-center justify-center bg-white/5 text-xs text-white/50">
+      <div className="flex flex-1 items-center justify-center bg-[var(--surface-1)] text-xs text-[var(--text-4)]">
         zone1
       </div>
     </div>

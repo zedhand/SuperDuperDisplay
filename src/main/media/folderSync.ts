@@ -2,23 +2,22 @@ import chokidar, { type FSWatcher } from 'chokidar'
 import { statSync } from 'fs'
 import { basename, extname, join } from 'path'
 import type { MediaItem } from '@shared/types'
-
-const MEDIA_EXTENSIONS = new Set(['.mp4', '.webm', '.gif', '.png', '.jpg', '.jpeg', '.webp'])
-const VIDEO_EXTENSIONS = new Set(['.mp4', '.webm'])
+import { mediaKindFromPath } from '@shared/media'
 
 /** Debounce so a burst of fs events (e.g. copying many files in) yields one rebuild instead of one per file. */
 const REBUILD_DEBOUNCE_MS = 250
 
 function toMediaItem(folder: string, filename: string): MediaItem | null {
-  const ext = extname(filename).toLowerCase()
-  if (!MEDIA_EXTENSIONS.has(ext)) return null
+  const kind = mediaKindFromPath(filename)
+  if (!kind) return null
+  const ext = extname(filename)
   const path = join(folder, filename)
   try {
     const stat = statSync(path)
     return {
       path,
       name: basename(filename, ext),
-      kind: VIDEO_EXTENSIONS.has(ext) ? 'video' : 'image',
+      kind,
       mtimeMs: stat.mtimeMs
     }
   } catch {

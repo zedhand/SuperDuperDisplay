@@ -28,7 +28,8 @@ export function FolderMediaZone({
   intervalSec,
   fit,
   bg,
-  bgColor
+  bgColor,
+  volume
 }: {
   folder: string
   shuffle: boolean
@@ -36,6 +37,7 @@ export function FolderMediaZone({
   fit: FitMode
   bg: ContainBackground
   bgColor: string
+  volume: number
 }): ReactElement {
   const [items, setItems] = useState<MediaFile[]>([])
   const [playlist, setPlaylist] = useState<PlaylistState>(() => initPlaylist(0, shuffle))
@@ -75,6 +77,7 @@ export function FolderMediaZone({
       fit={fit}
       bg={bg}
       bgColor={bgColor}
+      volume={volume}
     />
   )
 }

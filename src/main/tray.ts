@@ -23,16 +23,16 @@ export class TrayManager {
     this.setMode = setMode
     this.onQuit = onQuit
     this.tray = new Tray(iconPath)
-    this.tray.setToolTip('MiniDisplay')
+    this.tray.setToolTip('SuperDuperDisplay')
     this.tray.on('click', () => this.showControl())
   }
 
   update(config: AppConfig): void {
     const menu = Menu.buildFromTemplate([
-      { label: 'Show MiniDisplay', click: () => this.showControl() },
+      { label: 'Show SuperDuperDisplay', click: () => this.showControl() },
       { type: 'separator' },
       {
-        label: 'Presets',
+        label: 'Scenes',
         submenu: config.presets.map((preset) => ({
           label: preset.name,
           type: 'radio',

@@ -15,27 +15,20 @@ export function extractYoutubeId(input: string): string | null {
 }
 
 /**
- * Builds a chromeless, autoplaying, muted, looping embed URL. `loop=1`
- * only actually loops a single video when paired with `playlist=<same id>`
- * — an easy-to-miss YouTube iframe API quirk. youtube-nocookie.com is used
- * for privacy. The player also rejects this app's file:// origin outright
- * (embed error 153) unless `origin` here matches the Referer header
- * main/webSecurity.ts's registerYoutubeEmbedReferer() adds to the request.
+ * YouTube's embed player rejects this app's own file:// (or dev-mode
+ * localhost) origin outright as the parent of its iframe — error 152-4,
+ * "video unavailable" — no matter what Referer/origin header is spoofed on
+ * the request; this was tested directly and ruled out. The only working
+ * fix is for the iframe's actual top-level navigation to be a real public
+ * https origin. `superduperdisplay-yt-embed` is a small static page (source:
+ * https://github.com/zedhand/superduperdisplay-yt-embed) hosted on GitHub Pages
+ * for exactly that: it takes `?v=<id>` and embeds the video itself, so
+ * YoutubeZone.tsx loads *this* page in a <webview> instead of embedding
+ * YouTube directly.
  */
-export function buildYoutubeEmbedUrl(videoId: string): string {
-  const params = new URLSearchParams({
-    autoplay: '1',
-    mute: '1',
-    loop: '1',
-    playlist: videoId,
-    controls: '0',
-    modestbranding: '1',
-    rel: '0',
-    iv_load_policy: '3',
-    playsinline: '1',
-    // Matches the Referer header main/webSecurity.ts adds to this same
-    // request — the player checks that these two agree.
-    origin: 'https://www.youtube.com'
-  })
-  return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`
+const YOUTUBE_EMBED_RELAY_URL = 'https://zedhand.github.io/superduperdisplay-yt-embed/'
+
+/** `initialVolumePct` (0-100) only sets the *starting* volume/mute state — live changes after that go through the relay page's own `window.__setVolume()`, called via `webview.executeJavaScript()`, so turning the volume up/down never reloads (and restarts) the video. */
+export function buildYoutubeEmbedRelayUrl(videoId: string, initialVolumePct: number): string {
+  return `${YOUTUBE_EMBED_RELAY_URL}?v=${encodeURIComponent(videoId)}&volume=${initialVolumePct}`
 }
