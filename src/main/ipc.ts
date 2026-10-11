@@ -15,6 +15,8 @@ import type { TrayManager } from './tray'
 import type { RtspManager } from './camera/rtsp'
 import { generateRemoteToken, type RemoteServer } from './remote/server'
 import { getAgenda } from './calendar/ics'
+import { getWeather } from './weather/openMeteo'
+import { getFeed } from './rss/feed'
 
 export interface IpcContext {
   controlWin: BrowserWindow
@@ -132,6 +134,10 @@ export function registerIpcHandlers(ctx: IpcContext): void {
   })
 
   ipcMain.handle(IpcChannel.CalendarAgenda, (_event, icsUrl: string) => getAgenda(icsUrl))
+  ipcMain.handle(IpcChannel.WeatherGet, (_event, location: string, units: 'metric' | 'imperial') =>
+    getWeather(location, units)
+  )
+  ipcMain.handle(IpcChannel.RssGet, (_event, feedUrl: string) => getFeed(feedUrl))
 
   ipcMain.handle(IpcChannel.ConfigExport, async () => {
     const result = await dialog.showSaveDialog(ctx.controlWin, {

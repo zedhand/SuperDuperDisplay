@@ -1,6 +1,7 @@
 import type {
   AppConfig,
   CalendarEvent,
+  FeedItem,
   DisplayInfo,
   DisplayMatch,
   DisplayMode,
@@ -10,7 +11,8 @@ import type {
   Rotation,
   Scene,
   Telemetry,
-  TriggerState
+  TriggerState,
+  WeatherReport
 } from './types'
 
 export const IpcChannel = {
@@ -25,6 +27,8 @@ export const IpcChannel = {
   NowPlayingTick: 'nowplaying:tick',
 
   CalendarAgenda: 'calendar:agenda',
+  WeatherGet: 'weather:get',
+  RssGet: 'rss:get',
 
   TriggerState: 'trigger:state',
 
@@ -89,6 +93,14 @@ export interface IpcInvokeMap {
   [IpcChannel.CalendarAgenda]: {
     args: [icsUrl: string]
     result: { events: CalendarEvent[]; error?: string }
+  }
+  [IpcChannel.WeatherGet]: {
+    args: [location: string, units: 'metric' | 'imperial']
+    result: { report: WeatherReport | null; error?: string }
+  }
+  [IpcChannel.RssGet]: {
+    args: [feedUrl: string]
+    result: { title: string; items: FeedItem[]; error?: string }
   }
 }
 

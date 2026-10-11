@@ -48,6 +48,9 @@ zone, each freely placed/scaled/stacked item, OBS Scenes-style — shows one of:
   stored account credentials — just a calendar provider's own "secret address" export)
 - **Now playing** — whatever's currently playing in _any_ app on the machine (a browser tab,
   Spotify, anything with a media session), read straight from Windows' own now-playing info
+- **Weather** — current conditions and a 5-day forecast for any city (or "lat, lon"), from
+  Open-Meteo, so there's no API key or account to set up
+- **RSS** — headlines from any RSS or Atom feed, as a list or one big headline at a time
 - **Text** and **solid/gradient color** — for labels, name plates, or a plain background
 - **Layers** — an OBS Scenes-style freeform canvas: place, scale, and stack any of the above
   (including another layers zone) at arbitrary positions/sizes within one zone, with per-layer
