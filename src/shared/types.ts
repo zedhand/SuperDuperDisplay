@@ -57,6 +57,21 @@ export type ZoneSource =
       align: 'left' | 'center' | 'right'
     }
   | { type: 'calendar'; accentColor: string; mode: 'grid' | 'agenda'; icsUrl?: string } // 'grid': local month grid, no account integration. 'agenda': upcoming events from a subscribed .ics feed URL (Google/Outlook/Apple "secret address" export or any public .ics link) — no OAuth, no stored account credentials.
+  | {
+      type: 'weather'
+      location: string // a place name (geocoded via Open-Meteo, no API key) or "lat,lon"
+      units: 'metric' | 'imperial'
+      color: string
+      showForecast: boolean
+    }
+  | {
+      type: 'rss'
+      feedUrl: string // any RSS 2.0, RSS 1.0 or Atom feed URL
+      mode: 'list' | 'rotate' // 'list': as many headlines as fit. 'rotate': one headline at a time, cycling every intervalSec.
+      color: string
+      maxItems: number
+      intervalSec: number
+    }
   | { type: 'nowplaying'; color: string; align: 'left' | 'center' | 'right' } // OS-level "now playing" (Windows System Media Transport Controls) — whatever's currently playing in any app, not tied to this app's own media zones
   | {
       type: 'text'
@@ -153,6 +168,25 @@ export interface CalendarEvent {
   start: number // epoch ms
   end: number
   allDay: boolean
+}
+
+export interface WeatherReport {
+  location: string // resolved display name, e.g. "Berlin, Land Berlin"
+  units: 'metric' | 'imperial'
+  current: {
+    temperature: number
+    weatherCode: number // WMO code, see shared/weather.ts
+    windSpeed: number | null // km/h (metric) or mph (imperial)
+    isDay: boolean
+  }
+  daily: Array<{ date: string; weatherCode: number; max: number | null; min: number | null }> // date is "YYYY-MM-DD" in the location's timezone
+}
+
+export interface FeedItem {
+  id: string
+  title: string
+  link: string | null
+  published: number | null // epoch ms
 }
 
 export interface Telemetry {

@@ -19,6 +19,7 @@ function clamp(value: number, min: number, max: number): number {
 function sourceLabel(source: ZoneSource): string {
   if (source.type === 'media') return source.path?.split(/[/\\]/).pop() ?? source.folder ?? 'Media'
   if (source.type === 'nowplaying') return 'Now Playing'
+  if (source.type === 'rss') return 'RSS'
   return source.type[0].toUpperCase() + source.type.slice(1)
 }
 
