@@ -24,6 +24,7 @@ import { RtspManager } from './camera/rtsp'
 import { RemoteServer } from './remote/server'
 import { registerMediaPermissions, registerWebviewHardening } from './webSecurity'
 import { unregisterHotkeys } from './hotkeys'
+import { startAutoUpdates } from './updater'
 import { IpcChannel } from '@shared/ipc'
 
 registerMediaProtocolScheme()
@@ -150,6 +151,8 @@ if (!gotLock) {
       broadcastConfig(ctx, next)
     })
     powerManager.startIdleWatch()
+
+    startAutoUpdates()
 
     displayWin.webContents.once('did-finish-load', () => broadcastConfig(ctx, getConfig()))
     controlWin.webContents.once('did-finish-load', () => broadcastConfig(ctx, getConfig()))
