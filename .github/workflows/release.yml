@@ -1,0 +1,54 @@
+name: Release
+
+# Builds the Windows installer and publishes it as a GitHub release.
+# Run it from the Actions tab (or push a v* tag). The app version comes from
+# the tag, so package.json doesn't need bumping for each beta.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag, e.g. v1.0.0-beta.1
+        required: true
+      prerelease:
+        description: Mark as pre-release
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Set version from tag
+        shell: bash
+        run: npm version "${TAG#v}" --no-git-tag-version --allow-same-version
+
+      - run: npm run lint
+      - run: npm test
+
+      - name: Build installer
+        run: npm run build:win -- --publish never
+
+      - name: Publish release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          flags=(--title "SuperDuperDisplay $TAG" --generate-notes --target "$GITHUB_SHA")
+          if [[ "$TAG" == *-* || "${{ inputs.prerelease }}" == "true" ]]; then flags+=(--prerelease); fi
+          gh release create "$TAG" dist/*-setup.exe dist/*-setup.exe.blockmap "${flags[@]}"
