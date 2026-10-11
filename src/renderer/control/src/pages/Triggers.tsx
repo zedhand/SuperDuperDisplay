@@ -24,7 +24,7 @@ export function TriggersPage(): ReactElement {
 
   useEffect(() => window.control.telemetry.onTick(setTelemetry), [])
 
-  if (!config) return <div className="p-6 text-white/50">Loading…</div>
+  if (!config) return <div className="p-6 text-[var(--text-4)]">Loading…</div>
 
   function updateTrigger(id: string, updater: (t: Trigger) => Trigger): void {
     if (!config) return
@@ -45,10 +45,10 @@ export function TriggersPage(): ReactElement {
     <div className="flex flex-col gap-6 p-6">
       <section>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">Triggers</h2>
+          <h2 className="text-lg font-semibold text-[var(--text-1)]">Triggers</h2>
           <button
             onClick={addTrigger}
-            className="flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/80 hover:border-white/20"
+            className="flex items-center gap-2 rounded-md border border-[var(--border-1)] bg-[var(--surface-1)] px-3 py-1.5 text-xs text-[var(--text-2)] hover:border-[var(--border-2)]"
           >
             <Plus size={14} />
             Add trigger
@@ -57,7 +57,7 @@ export function TriggersPage(): ReactElement {
 
         <div className="flex flex-col gap-4">
           {config.triggers.length === 0 && (
-            <p className="text-sm text-white/40">
+            <p className="text-sm text-[var(--text-5)]">
               No triggers yet. Add one to react to temperature or load thresholds.
             </p>
           )}
@@ -67,18 +67,21 @@ export function TriggersPage(): ReactElement {
             const currentValue = telemetry && metricDef ? metricDef.getValue(telemetry) : null
 
             return (
-              <div key={trigger.id} className="rounded-lg border border-white/10 bg-white/5 p-4">
+              <div
+                key={trigger.id}
+                className="rounded-lg border border-[var(--border-1)] bg-[var(--surface-1)] p-4"
+              >
                 <div className="mb-3 flex items-center justify-between">
                   <input
                     value={trigger.name}
                     onChange={(e) =>
                       updateTrigger(trigger.id, (t) => ({ ...t, name: e.target.value }))
                     }
-                    className="rounded border border-white/10 bg-transparent px-2 py-1 text-sm font-medium text-white"
+                    className="rounded border border-[var(--border-1)] bg-transparent px-2 py-1 text-sm font-medium text-[var(--text-1)]"
                   />
                   <button
                     onClick={() => removeTrigger(trigger.id)}
-                    className="rounded-md border border-white/10 bg-white/5 p-1.5 text-white/50 hover:border-red-400/40 hover:text-red-400"
+                    className="rounded-md border border-[var(--border-1)] bg-[var(--surface-1)] p-1.5 text-[var(--text-4)] hover:border-red-400/40 hover:text-red-400"
                   >
                     <Trash2 size={14} />
                   </button>
@@ -93,7 +96,7 @@ export function TriggersPage(): ReactElement {
                         metric: e.target.value as Trigger['metric']
                       }))
                     }
-                    className="rounded border border-white/10 bg-white/5 px-2 py-1 text-white"
+                    className="rounded border border-[var(--border-1)] bg-[var(--surface-1)] px-2 py-1 text-[var(--text-1)]"
                   >
                     {METRICS.map((m) => (
                       <option key={m.key} value={m.key}>
@@ -110,7 +113,7 @@ export function TriggersPage(): ReactElement {
                         op: e.target.value as Trigger['op']
                       }))
                     }
-                    className="rounded border border-white/10 bg-white/5 px-2 py-1 text-white"
+                    className="rounded border border-[var(--border-1)] bg-[var(--surface-1)] px-2 py-1 text-[var(--text-1)]"
                   >
                     <option value=">">greater than</option>
                     <option value="<">less than</option>
@@ -122,17 +125,19 @@ export function TriggersPage(): ReactElement {
                     onChange={(e) =>
                       updateTrigger(trigger.id, (t) => ({ ...t, value: Number(e.target.value) }))
                     }
-                    className="w-20 rounded border border-white/10 bg-white/5 px-2 py-1 text-white"
+                    className="w-20 rounded border border-[var(--border-1)] bg-[var(--surface-1)] px-2 py-1 text-[var(--text-1)]"
                   />
 
-                  {metricDef && <span className="text-white/40">{metricDef.unit}</span>}
+                  {metricDef && <span className="text-[var(--text-5)]">{metricDef.unit}</span>}
 
                   {currentValue != null && (
-                    <span className="text-xs text-white/40">(now {Math.round(currentValue)})</span>
+                    <span className="text-xs text-[var(--text-5)]">
+                      (now {Math.round(currentValue)})
+                    </span>
                   )}
                 </div>
 
-                <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-white/70">
+                <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-[var(--text-3)]">
                   <label className="flex items-center gap-2">
                     hold
                     <input
@@ -145,7 +150,7 @@ export function TriggersPage(): ReactElement {
                           holdSec: Number(e.target.value)
                         }))
                       }
-                      className="w-16 rounded border border-white/10 bg-white/5 px-2 py-1 text-white"
+                      className="w-16 rounded border border-[var(--border-1)] bg-[var(--surface-1)] px-2 py-1 text-[var(--text-1)]"
                     />
                     sec
                   </label>
@@ -160,7 +165,7 @@ export function TriggersPage(): ReactElement {
                           clearBelow: Number(e.target.value)
                         }))
                       }
-                      className="w-20 rounded border border-white/10 bg-white/5 px-2 py-1 text-white"
+                      className="w-20 rounded border border-[var(--border-1)] bg-[var(--surface-1)] px-2 py-1 text-[var(--text-1)]"
                     />
                   </label>
                 </div>
@@ -174,26 +179,32 @@ export function TriggersPage(): ReactElement {
                         effect:
                           e.target.value === 'glow'
                             ? { type: 'glow', color: '#ff2020' }
-                            : { type: 'preset', presetId: config?.presets[0]?.id ?? '' }
+                            : e.target.value === 'flash'
+                              ? { type: 'flash', color: '#ff2020' }
+                              : { type: 'preset', presetId: config?.presets[0]?.id ?? '' }
                       }))
                     }
-                    className="rounded border border-white/10 bg-white/5 px-2 py-1 text-white"
+                    className="rounded border border-[var(--border-1)] bg-[var(--surface-1)] px-2 py-1 text-[var(--text-1)]"
                   >
                     <option value="glow">Pulsing glow</option>
-                    <option value="preset">Switch preset</option>
+                    <option value="flash">One-shot flash</option>
+                    <option value="preset">Switch scene</option>
                   </select>
 
-                  {trigger.effect.type === 'glow' ? (
+                  {trigger.effect.type === 'glow' || trigger.effect.type === 'flash' ? (
                     <input
                       type="color"
                       value={trigger.effect.color}
                       onChange={(e) =>
                         updateTrigger(trigger.id, (t) => ({
                           ...t,
-                          effect: { type: 'glow', color: e.target.value }
+                          effect: {
+                            type: t.effect.type === 'flash' ? 'flash' : 'glow',
+                            color: e.target.value
+                          }
                         }))
                       }
-                      className="h-7 w-10 rounded border border-white/10 bg-transparent"
+                      className="h-7 w-10 rounded border border-[var(--border-1)] bg-transparent"
                     />
                   ) : (
                     <select
@@ -204,7 +215,7 @@ export function TriggersPage(): ReactElement {
                           effect: { type: 'preset', presetId: e.target.value }
                         }))
                       }
-                      className="rounded border border-white/10 bg-white/5 px-2 py-1 text-white"
+                      className="rounded border border-[var(--border-1)] bg-[var(--surface-1)] px-2 py-1 text-[var(--text-1)]"
                     >
                       {config.presets.map((p) => (
                         <option key={p.id} value={p.id}>

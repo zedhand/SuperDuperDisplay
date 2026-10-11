@@ -32,20 +32,3 @@ export function registerWebviewHardening(): void {
     })
   })
 }
-
-/**
- * The YouTube zone's iframe is served from this app's file:// origin,
- * which YouTube's embed player rejects outright (error 153, "video player
- * configuration error") — it expects a real http(s) Referer. Rewriting it
- * to a generic https origin for just the embed request satisfies that
- * check without needing to serve the app itself over http.
- */
-export function registerYoutubeEmbedReferer(): void {
-  session.defaultSession.webRequest.onBeforeSendHeaders(
-    { urls: ['*://*.youtube.com/*', '*://*.youtube-nocookie.com/*', '*://*.ytimg.com/*'] },
-    (details, callback) => {
-      details.requestHeaders['Referer'] = 'https://www.youtube.com/'
-      callback({ requestHeaders: details.requestHeaders })
-    }
-  )
-}

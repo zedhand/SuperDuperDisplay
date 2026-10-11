@@ -47,25 +47,52 @@ const blurredBgStyle: CSSProperties = {
 
 /**
  * Renders one media zone. Videos loop with zero visible gap by keeping two
- * <video> elements pointed at the same src: as the active one nears its end,
- * the other is seeked to 0 and started, then the two cross-fade — avoiding
- * the black-frame flash a native `loop` restart can cause. Switching to a
- * different `item` (a new file) cross-fades the same way.
+ * <video> elements pointed at the same src: as the active one nears its end
+ * (or `trimEnd`, if set), the other is seeked to the start (`trimStart`, if
+ * set, else 0) and started, then the two cross-fade — avoiding the
+ * black-frame flash a native `loop` restart can cause. Switching to a
+ * different `item` (a new file) cross-fades the same way. `loop: false`
+ * skips the swap entirely and just pauses once playback reaches the end/
+ * `trimEnd`, holding on the last frame — `trimStart`/`trimEnd` have no
+ * effect on a folder playlist (FolderMediaZone rotates `item` itself on its
+ * own timer, so these default to their always-loop-the-whole-file values
+ * there).
  */
 export function MediaZone({
   item,
   fit,
   bg,
-  bgColor
+  bgColor,
+  volume,
+  loop = true,
+  trimStart,
+  trimEnd
 }: {
   item: MediaItemSpec
   fit: FitMode
   bg: ContainBackground
   bgColor: string
+  volume: number
+  loop?: boolean
+  trimStart?: number
+  trimEnd?: number
 }): ReactElement {
   const videoRefs = [useRef<HTMLVideoElement>(null), useRef<HTMLVideoElement>(null)] as const
   const activeRef = useRef(0)
   const [activeIndex, setActiveIndex] = useState(0)
+
+  // Applied to both slots, not just the active one, so whichever buffer the
+  // gapless-loop swap brings to the front next is already at the right
+  // volume — never the previously active one's stale setting.
+  useEffect(() => {
+    for (const ref of videoRefs) {
+      const el = ref.current
+      if (!el) continue
+      el.volume = volume
+      el.muted = volume <= 0
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [volume])
   // Both slots start on the same item: two identical buffers ready for a
   // gapless same-item loop-restart. A slot only ever holds a *different*
   // item while a genuine file change (pendingSwapRef) is in flight.
@@ -75,6 +102,7 @@ export function MediaZone({
 
   useEffect(() => {
     const el = videoRefs[activeRef.current].current
+    if (el && trimStart) el.currentTime = trimStart
     el?.play().catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -106,7 +134,7 @@ export function MediaZone({
     if (!el) return
     const onReady = (): void => {
       pendingSwapRef.current = null
-      el.currentTime = 0
+      el.currentTime = trimStart ?? 0
       el.play().catch(() => {})
       activeRef.current = pending.slotIndex
       setActiveIndex(pending.slotIndex)
@@ -121,10 +149,19 @@ export function MediaZone({
     if (index !== activeRef.current) return
     if (pendingSwapRef.current) return // a genuine item change is already queued; let that swap happen instead
     const el = videoRefs[index].current
+    if (!el || !Number.isFinite(el.duration)) return
+    const effectiveEnd = trimEnd != null ? Math.min(trimEnd, el.duration) : el.duration
+
+    if (!loop) {
+      if (el.currentTime < effectiveEnd) return
+      el.pause()
+      return
+    }
+
     const other = videoRefs[1 - index].current
-    if (!el || !other || !Number.isFinite(el.duration)) return
-    if (el.duration - el.currentTime > LOOP_LEAD_SEC) return
-    other.currentTime = 0
+    if (!other) return
+    if (effectiveEnd - el.currentTime > LOOP_LEAD_SEC) return
+    other.currentTime = trimStart ?? 0
     other.play().catch(() => {})
     activeRef.current = 1 - index
     setActiveIndex(1 - index)
@@ -158,10 +195,10 @@ export function MediaZone({
             key={index}
             ref={videoRefs[index]}
             src={spec.src}
-            muted
             playsInline
             preload="auto"
             onTimeUpdate={() => handleTimeUpdate(index)}
+            data-active={index === activeIndex}
             style={layeredStyle(index === activeIndex, objectFit)}
           />
         ) : (
@@ -169,6 +206,7 @@ export function MediaZone({
             key={index}
             src={spec.src}
             alt=""
+            data-active={index === activeIndex}
             style={layeredStyle(index === activeIndex, objectFit)}
           />
         )
