@@ -56,6 +56,27 @@ export const TYPE_SWITCH_OPTIONS: Array<{ label: string; make: () => ZoneSource 
     make: () => ({ type: 'calendar', accentColor: '#e879f9', mode: 'grid' })
   },
   {
+    label: 'Weather',
+    make: () => ({
+      type: 'weather',
+      location: '',
+      units: 'metric',
+      color: '#ffffff',
+      showForecast: true
+    })
+  },
+  {
+    label: 'RSS',
+    make: () => ({
+      type: 'rss',
+      feedUrl: '',
+      mode: 'list',
+      color: '#ffffff',
+      maxItems: 8,
+      intervalSec: 8
+    })
+  },
+  {
     label: 'Now Playing',
     make: () => ({ type: 'nowplaying', color: '#ffffff', align: 'left' })
   },

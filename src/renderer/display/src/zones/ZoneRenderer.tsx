@@ -11,6 +11,8 @@ import { RtspZone } from './RtspZone'
 import { ClockZone } from './ClockZone'
 import { CalendarZone } from './CalendarZone'
 import { NowPlayingZone } from './NowPlayingZone'
+import { WeatherZone } from './WeatherZone'
+import { RssZone } from './RssZone'
 import { TextZone } from './TextZone'
 import { ColorZone } from './ColorZone'
 import { LayersZone } from './LayersZone'
@@ -26,7 +28,8 @@ import { ZonePlaceholder } from './ZonePlaceholder'
  * ticks) — and would throw if actually rendered there. Everything else (a
  * fixed media file, YouTube, a web dashboard, a USB camera, clock,
  * calendar — including its agenda mode, which calls a plain invoke exposed
- * in both preloads rather than a display-only push channel — and layers
+ * in both preloads rather than a display-only push channel — weather and
+ * RSS (same plain-invoke pattern), and layers
  * zones recursively) has no such dependency and renders exactly the same,
  * real content either way — so the control window's previews are genuine
  * WYSIWYG wherever that's possible, and a clear placeholder only where
@@ -110,6 +113,25 @@ export function ZoneRenderer({
     case 'calendar':
       return (
         <CalendarZone accentColor={source.accentColor} mode={source.mode} icsUrl={source.icsUrl} />
+      )
+    case 'weather':
+      return (
+        <WeatherZone
+          location={source.location}
+          units={source.units}
+          color={source.color}
+          showForecast={source.showForecast}
+        />
+      )
+    case 'rss':
+      return (
+        <RssZone
+          feedUrl={source.feedUrl}
+          mode={source.mode}
+          color={source.color}
+          maxItems={source.maxItems}
+          intervalSec={source.intervalSec}
+        />
       )
     case 'nowplaying':
       if (isPreview) return <ZonePlaceholder label="Now playing" />
