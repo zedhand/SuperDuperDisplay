@@ -1,8 +1,8 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'child_process'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'http'
-import ffmpegPath from 'ffmpeg-static'
+import { ffmpegPath } from '../media/ffmpegPath'
 
-const BOUNDARY = 'minidisplay-frame'
+const BOUNDARY = 'superduperdisplay-frame'
 
 interface ActiveStream {
   process: ChildProcessWithoutNullStreams
@@ -44,7 +44,7 @@ export class RtspManager {
   }
 
   private spawnFfmpeg(rtspUrl: string): void {
-    const proc = spawn(ffmpegPath as unknown as string, [
+    const proc = spawn(ffmpegPath, [
       '-rtsp_transport',
       'tcp',
       '-i',

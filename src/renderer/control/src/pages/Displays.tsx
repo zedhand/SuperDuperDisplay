@@ -5,6 +5,13 @@ import { useConfigStore } from '../store/useConfigStore'
 
 const ROTATIONS: Rotation[] = [0, 90, 180, 270]
 const MODES: DisplayMode[] = ['live', 'black', 'hidden']
+const MODE_LABELS: Record<DisplayMode, string> = { live: 'Live', black: 'Black', hidden: 'Desktop' }
+const MODE_DESCRIPTIONS: Record<DisplayMode, string> = {
+  live: 'Shows the active scene’s content.',
+  black: 'Shows a black screen, but SuperDuperDisplay is still running underneath.',
+  hidden:
+    'Bypasses SuperDuperDisplay entirely — the panel behaves like a normal extended desktop monitor, exactly as if the app weren’t running. Drag any window onto it, or place icons there.'
+}
 
 type DisplayRow = DisplayInfo & { isTarget: boolean }
 
@@ -19,7 +26,7 @@ export function DisplaysPage(): ReactElement {
     return window.control.displays.onChanged(setDisplays)
   }, [])
 
-  if (!config) return <div className="p-6 text-white/50">Loading…</div>
+  if (!config) return <div className="p-6 text-[var(--text-4)]">Loading…</div>
 
   const { display } = config
 
@@ -62,7 +69,7 @@ export function DisplaysPage(): ReactElement {
   return (
     <div className="flex flex-col gap-6 p-6">
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-white">Connected displays</h2>
+        <h2 className="mb-3 text-lg font-semibold text-[var(--text-1)]">Connected displays</h2>
         <div className="flex flex-col gap-2">
           {displays.map((d) => (
             <button
@@ -70,19 +77,19 @@ export function DisplaysPage(): ReactElement {
               onClick={() => selectDisplay(d)}
               className={`flex items-center justify-between rounded-lg border px-4 py-3 text-left transition-colors ${
                 d.isTarget && !display.simulate
-                  ? 'border-fuchsia-400/60 bg-fuchsia-500/10'
-                  : 'border-white/10 bg-white/5 hover:border-white/20'
+                  ? 'border-[var(--accent-border)] bg-[var(--accent-bg)]'
+                  : 'border-[var(--border-1)] bg-[var(--surface-1)] hover:border-[var(--border-2)]'
               }`}
             >
               <div>
-                <div className="text-sm font-medium text-white">{d.label}</div>
-                <div className="text-xs text-white/50">
+                <div className="text-sm font-medium text-[var(--text-1)]">{d.label}</div>
+                <div className="text-xs text-[var(--text-4)]">
                   {d.bounds.width}×{d.bounds.height} at ({d.bounds.x}, {d.bounds.y}) · scale{' '}
                   {d.scaleFactor}x
                 </div>
               </div>
               {d.isTarget && !display.simulate && (
-                <span className="rounded-full bg-fuchsia-500/20 px-2 py-1 text-xs text-fuchsia-300">
+                <span className="rounded-full bg-[var(--accent-bg-strong)] px-2 py-1 text-xs text-[var(--accent-light)]">
                   Target
                 </span>
               )}
@@ -93,19 +100,19 @@ export function DisplaysPage(): ReactElement {
             onClick={useSimulator}
             className={`flex items-center justify-between rounded-lg border px-4 py-3 text-left transition-colors ${
               display.simulate
-                ? 'border-fuchsia-400/60 bg-fuchsia-500/10'
-                : 'border-white/10 bg-white/5 hover:border-white/20'
+                ? 'border-[var(--accent-border)] bg-[var(--accent-bg)]'
+                : 'border-[var(--border-1)] bg-[var(--surface-1)] hover:border-[var(--border-2)]'
             }`}
           >
             <div>
-              <div className="text-sm font-medium text-white">Simulated screen</div>
-              <div className="text-xs text-white/50">
+              <div className="text-sm font-medium text-[var(--text-1)]">Simulated screen</div>
+              <div className="text-xs text-[var(--text-4)]">
                 A window on this monitor, sized like the case screen — use until the real panel is
                 connected.
               </div>
             </div>
             {display.simulate && (
-              <span className="rounded-full bg-fuchsia-500/20 px-2 py-1 text-xs text-fuchsia-300">
+              <span className="rounded-full bg-[var(--accent-bg-strong)] px-2 py-1 text-xs text-[var(--accent-light)]">
                 Target
               </span>
             )}
@@ -114,7 +121,7 @@ export function DisplaysPage(): ReactElement {
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-white">Rotation</h2>
+        <h2 className="mb-3 text-lg font-semibold text-[var(--text-1)]">Rotation</h2>
         <div className="flex gap-2">
           {ROTATIONS.map((r) => (
             <button
@@ -122,8 +129,8 @@ export function DisplaysPage(): ReactElement {
               onClick={() => setRotation(r)}
               className={`rounded-md border px-4 py-2 text-sm ${
                 display.rotation === r
-                  ? 'border-fuchsia-400/60 bg-fuchsia-500/10 text-fuchsia-300'
-                  : 'border-white/10 bg-white/5 text-white/70 hover:border-white/20'
+                  ? 'border-[var(--accent-border)] bg-[var(--accent-bg)] text-[var(--accent-light)]'
+                  : 'border-[var(--border-1)] bg-[var(--surface-1)] text-[var(--text-3)] hover:border-[var(--border-2)]'
               }`}
             >
               {r}°
@@ -133,29 +140,30 @@ export function DisplaysPage(): ReactElement {
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-white">Mode</h2>
+        <h2 className="mb-3 text-lg font-semibold text-[var(--text-1)]">Mode</h2>
         <div className="flex gap-2">
           {MODES.map((m) => (
             <button
               key={m}
               onClick={() => patch({ display: { ...display, mode: m } })}
-              className={`rounded-md border px-4 py-2 text-sm capitalize ${
+              className={`rounded-md border px-4 py-2 text-sm ${
                 display.mode === m
-                  ? 'border-fuchsia-400/60 bg-fuchsia-500/10 text-fuchsia-300'
-                  : 'border-white/10 bg-white/5 text-white/70 hover:border-white/20'
+                  ? 'border-[var(--accent-border)] bg-[var(--accent-bg)] text-[var(--accent-light)]'
+                  : 'border-[var(--border-1)] bg-[var(--surface-1)] text-[var(--text-3)] hover:border-[var(--border-2)]'
               }`}
             >
-              {m}
+              {MODE_LABELS[m]}
             </button>
           ))}
         </div>
+        <p className="mt-2 text-xs text-[var(--text-4)]">{MODE_DESCRIPTIONS[display.mode]}</p>
       </section>
 
       <section>
         <button
           onClick={identify}
           disabled={identifying}
-          className="flex w-fit items-center gap-2 rounded-md border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 hover:border-white/20 disabled:opacity-50"
+          className="flex w-fit items-center gap-2 rounded-md border border-[var(--border-1)] bg-[var(--surface-1)] px-4 py-2 text-sm text-[var(--text-2)] hover:border-[var(--border-2)] disabled:opacity-50"
         >
           <Sparkles size={16} />
           {identifying ? 'Flashing…' : 'Identify screen'}

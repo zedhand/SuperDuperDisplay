@@ -1,9 +1,11 @@
 import type {
   AppConfig,
+  CalendarEvent,
   DisplayInfo,
   DisplayMatch,
   DisplayMode,
   MediaItem,
+  NowPlayingInfo,
   RemoteStatus,
   Rotation,
   Scene,
@@ -20,6 +22,9 @@ export const IpcChannel = {
   SceneCurrent: 'scene:current',
 
   TelemetryTick: 'telemetry:tick',
+  NowPlayingTick: 'nowplaying:tick',
+
+  CalendarAgenda: 'calendar:agenda',
 
   TriggerState: 'trigger:state',
 
@@ -41,7 +46,12 @@ export const IpcChannel = {
   RemoteSetEnabled: 'remote:setEnabled',
   RemoteRegenerateToken: 'remote:regenerateToken',
 
-  DebugCaptureDisplay: 'debug:captureDisplay'
+  DebugCaptureDisplay: 'debug:captureDisplay',
+
+  ZoneGetNaturalSize: 'zone:getNaturalSize',
+
+  ConfigExport: 'config:export',
+  ConfigImport: 'config:import'
 } as const
 
 export type IpcChannelName = (typeof IpcChannel)[keyof typeof IpcChannel]
@@ -67,6 +77,19 @@ export interface IpcInvokeMap {
   [IpcChannel.RemoteSetEnabled]: { args: [enabled: boolean]; result: RemoteStatus }
   [IpcChannel.RemoteRegenerateToken]: { args: []; result: RemoteStatus }
   [IpcChannel.DebugCaptureDisplay]: { args: []; result: { filePath: string } }
+  [IpcChannel.ZoneGetNaturalSize]: {
+    args: [zoneId: string]
+    result: { width: number; height: number } | null
+  }
+  [IpcChannel.ConfigExport]: { args: []; result: { filePath: string } | null }
+  [IpcChannel.ConfigImport]: {
+    args: []
+    result: { config: AppConfig } | { error: string } | null
+  }
+  [IpcChannel.CalendarAgenda]: {
+    args: [icsUrl: string]
+    result: { events: CalendarEvent[]; error?: string }
+  }
 }
 
 /** One-way broadcast channels: main pushes to a renderer, unprompted. */
@@ -74,6 +97,7 @@ export interface IpcBroadcastMap {
   [IpcChannel.ConfigChanged]: AppConfig
   [IpcChannel.SceneCurrent]: Scene
   [IpcChannel.TelemetryTick]: Telemetry
+  [IpcChannel.NowPlayingTick]: NowPlayingInfo
   [IpcChannel.TriggerState]: TriggerState
   [IpcChannel.DisplaysChanged]: DisplayInfo[]
   [IpcChannel.MediaFolderChanged]: { folder: string; items: MediaItem[] }

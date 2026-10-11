@@ -28,14 +28,14 @@ export function ColorPage(): ReactElement {
   const config = useConfigStore((s) => s.config)
   const patch = useConfigStore((s) => s.patch)
 
-  if (!config) return <div className="p-6 text-white/50">Loading…</div>
+  if (!config) return <div className="p-6 text-[var(--text-4)]">Loading…</div>
 
   const activePreset = config.presets.find((p) => p.id === config.activePresetId)
   const profile =
     activePreset && config.colorProfiles.find((c) => c.id === activePreset.colorProfileId)
 
   if (!activePreset || !profile) {
-    return <div className="p-6 text-white/50">No active preset.</div>
+    return <div className="p-6 text-[var(--text-4)]">No active scene.</div>
   }
 
   function updateProfile(patchValues: Partial<ColorProfile>): void {
@@ -50,8 +50,10 @@ export function ColorPage(): ReactElement {
   return (
     <div className="flex flex-col gap-6 p-6">
       <section>
-        <h2 className="mb-1 text-lg font-semibold text-white">Color for {activePreset.name}</h2>
-        <p className="mb-4 text-xs text-white/40">
+        <h2 className="mb-1 text-lg font-semibold text-[var(--text-1)]">
+          Color for {activePreset.name}
+        </h2>
+        <p className="mb-4 text-xs text-[var(--text-5)]">
           Adjusts &quot;{profile.name}&quot;, applied to the whole panel — use this to color-match
           the output to your case&apos;s RGB lighting.
         </p>
@@ -59,9 +61,9 @@ export function ColorPage(): ReactElement {
         <div className="flex max-w-md flex-col gap-4">
           {SLIDERS.map(({ key, label, min, max, step }) => (
             <div key={key} className="flex flex-col gap-1">
-              <div className="flex items-center justify-between text-sm text-white/80">
+              <div className="flex items-center justify-between text-sm text-[var(--text-2)]">
                 <span>{label}</span>
-                <span className="text-white/50">{profile[key]}</span>
+                <span className="text-[var(--text-4)]">{profile[key]}</span>
               </div>
               <input
                 type="range"
@@ -70,7 +72,7 @@ export function ColorPage(): ReactElement {
                 step={step}
                 value={profile[key]}
                 onChange={(e) => updateProfile({ [key]: Number(e.target.value) })}
-                className="accent-fuchsia-500"
+                className="accent-[var(--accent)]"
               />
             </div>
           ))}
@@ -78,7 +80,7 @@ export function ColorPage(): ReactElement {
 
         <button
           onClick={() => updateProfile(NEUTRAL)}
-          className="mt-4 w-fit rounded-md border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/70 hover:border-white/20"
+          className="mt-4 w-fit rounded-md border border-[var(--border-1)] bg-[var(--surface-1)] px-4 py-2 text-sm text-[var(--text-3)] hover:border-[var(--border-2)]"
         >
           Reset to neutral
         </button>

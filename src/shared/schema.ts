@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { AppConfig } from './types'
+import type { AppConfig, LayerItem, ZoneSource } from './types'
 
 const rotationSchema = z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)])
 const fitModeSchema = z.enum(['cover', 'contain', 'stretch'])
@@ -23,31 +23,104 @@ const colorProfileSchema = z.object({
   gamma: z.number().min(0.1).max(3)
 })
 
-const zoneSourceSchema = z.discriminatedUnion('type', [
+// Mutually recursive: a `layers` zone's items each carry a full
+// `ZoneSource` (so a layer can itself be `layers`, or media, YouTube,
+// stats, ...), so both schemas are wrapped in `z.lazy()` and typed
+// explicitly — the standard zod pattern for a recursive schema. Neither
+// lazy callback actually runs until something is parsed, by which point
+// both consts below are already assigned, so the forward reference from
+// `zoneSourceSchema` to `layerItemSchema` (defined after it) is safe.
+const zoneSourceSchema: z.ZodType<ZoneSource> = z.lazy(() =>
+  z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('media'),
+      path: z.string().optional(),
+      folder: z.string().optional(),
+      shuffle: z.boolean(),
+      intervalSec: z.number().nonnegative(),
+      fit: fitModeSchema,
+      bg: z.enum(['solid', 'blur']),
+      bgColor: z.string(),
+      volume: z.number().min(0).max(1).default(0),
+      loop: z.boolean().default(true),
+      trimStart: z.number().nonnegative().optional(),
+      trimEnd: z.number().nonnegative().optional()
+    }),
+    z.object({
+      type: z.literal('youtube'),
+      url: z.string(),
+      volume: z.number().min(0).max(1).default(0)
+    }),
+    z.object({
+      type: z.literal('web'),
+      url: z.string(),
+      css: z.string().optional(),
+      volume: z.number().min(0).max(1).default(0)
+    }),
+    z.object({
+      type: z.literal('stats'),
+      widgets: z.array(z.string()),
+      style: z.enum(['bars', 'gauges', 'compact'])
+    }),
+    z.object({
+      type: z.literal('camera'),
+      deviceId: z.string().optional(),
+      rtspUrl: z.string().optional()
+    }),
+    z.object({
+      type: z.literal('clock'),
+      format: z.enum(['12h', '24h']),
+      showDate: z.boolean(),
+      color: z.string(),
+      align: z.enum(['left', 'center', 'right'])
+    }),
+    z.object({
+      type: z.literal('calendar'),
+      accentColor: z.string(),
+      mode: z.enum(['grid', 'agenda']).default('grid'),
+      icsUrl: z.string().optional()
+    }),
+    z.object({
+      type: z.literal('nowplaying'),
+      color: z.string(),
+      align: z.enum(['left', 'center', 'right'])
+    }),
+    z.object({
+      type: z.literal('text'),
+      content: z.string(),
+      color: z.string(),
+      align: z.enum(['left', 'center', 'right']),
+      scale: z.number().min(0.5).max(2),
+      bold: z.boolean()
+    }),
+    z.object({
+      type: z.literal('color'),
+      mode: z.enum(['solid', 'gradient']),
+      colorA: z.string(),
+      colorB: z.string(),
+      angle: z.number()
+    }),
+    z.object({
+      type: z.literal('layers'),
+      items: z.array(layerItemSchema)
+    }),
+    z.object({ type: z.literal('blank') })
+  ])
+)
+
+const layerItemSchema: z.ZodType<LayerItem> = z.lazy(() =>
   z.object({
-    type: z.literal('media'),
-    path: z.string().optional(),
-    folder: z.string().optional(),
-    shuffle: z.boolean(),
-    intervalSec: z.number().nonnegative(),
-    fit: fitModeSchema,
-    bg: z.enum(['solid', 'blur']),
-    bgColor: z.string()
-  }),
-  z.object({ type: z.literal('youtube'), url: z.string() }),
-  z.object({ type: z.literal('web'), url: z.string(), css: z.string().optional() }),
-  z.object({
-    type: z.literal('stats'),
-    widgets: z.array(z.string()),
-    style: z.enum(['bars', 'gauges', 'compact'])
-  }),
-  z.object({
-    type: z.literal('camera'),
-    deviceId: z.string().optional(),
-    rtspUrl: z.string().optional()
-  }),
-  z.object({ type: z.literal('blank') })
-])
+    id: z.string(),
+    x: z.number(),
+    y: z.number(),
+    width: z.number(),
+    height: z.number(),
+    opacity: z.number().min(0).max(1),
+    zIndex: z.number(),
+    filter: z.enum(['none', 'grayscale', 'sepia', 'blur', 'invert']).default('none'),
+    source: zoneSourceSchema
+  })
+)
 
 const layoutSchema = z.object({
   id: z.string(),
@@ -75,8 +148,18 @@ const triggerSchema = z.object({
   clearBelow: z.number(),
   effect: z.discriminatedUnion('type', [
     z.object({ type: z.literal('glow'), color: z.string() }),
+    z.object({ type: z.literal('flash'), color: z.string() }),
     z.object({ type: z.literal('preset'), presetId: z.string() })
   ])
+})
+
+const scheduleEntrySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  presetId: z.string(),
+  time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Expected HH:MM (24h)'),
+  days: z.array(z.number().int().min(0).max(6)),
+  enabled: z.boolean()
 })
 
 export const appConfigSchema: z.ZodType<AppConfig> = z.object({
@@ -85,7 +168,8 @@ export const appConfigSchema: z.ZodType<AppConfig> = z.object({
     match: displayMatchSchema.nullable(),
     rotation: rotationSchema,
     simulate: z.boolean(),
-    mode: displayModeSchema
+    mode: displayModeSchema,
+    transitionMs: z.number().nonnegative().default(0)
   }),
   controlWindow: z.object({
     bounds: z
@@ -102,6 +186,8 @@ export const appConfigSchema: z.ZodType<AppConfig> = z.object({
   layouts: z.array(layoutSchema),
   colorProfiles: z.array(colorProfileSchema),
   triggers: z.array(triggerSchema),
+  schedule: z.array(scheduleEntrySchema).default([]),
+  recentMedia: z.array(z.string()).default([]),
   telemetry: z.object({
     source: z.enum(['auto', 'lhm', 'si']),
     lhmUrl: z.string(),
@@ -119,7 +205,10 @@ export const appConfigSchema: z.ZodType<AppConfig> = z.object({
   }),
   app: z.object({
     launchAtLogin: z.boolean(),
-    startMinimized: z.boolean()
+    startMinimized: z.boolean(),
+    accentColor: z.string().default('#d946ef'),
+    hotkeysEnabled: z.boolean().default(false),
+    theme: z.enum(['dark', 'light']).default('dark')
   })
 })
 
@@ -136,7 +225,8 @@ export const defaultConfig: AppConfig = {
     match: null,
     rotation: 0,
     simulate: true,
-    mode: 'live'
+    mode: 'live',
+    transitionMs: 0
   },
   controlWindow: {
     bounds: null
@@ -172,7 +262,7 @@ export const defaultConfig: AppConfig = {
     },
     {
       id: 'media-plus-stats',
-      name: '70/30 media + stats',
+      name: 'Split Zones',
       layoutId: LAYOUT_SPLIT_70_30_ID,
       colorProfileId: NEUTRAL_COLOR_PROFILE_ID,
       fit: 'cover',
@@ -219,6 +309,8 @@ export const defaultConfig: AppConfig = {
   ],
   activePresetId: 'full-bleed-loop',
   triggers: [],
+  schedule: [],
+  recentMedia: [],
   telemetry: {
     source: 'auto',
     lhmUrl: 'http://localhost:8085/data.json',
@@ -236,6 +328,9 @@ export const defaultConfig: AppConfig = {
   },
   app: {
     launchAtLogin: false,
-    startMinimized: false
+    startMinimized: false,
+    accentColor: '#d946ef',
+    hotkeysEnabled: false,
+    theme: 'dark'
   }
 }

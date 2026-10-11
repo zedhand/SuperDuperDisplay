@@ -78,7 +78,7 @@ function renderRemotePage(): string {
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>MiniDisplay Remote</title>
+<title>SuperDuperDisplay Remote</title>
 <style>
   :root { color-scheme: dark; }
   body { margin: 0; background: #0b0b0f; color: #fff; font-family: system-ui, sans-serif; padding: 24px 16px; }
@@ -94,8 +94,8 @@ function renderRemotePage(): string {
 </style>
 </head>
 <body>
-  <h1>MiniDisplay Remote</h1>
-  <h2>Presets</h2>
+  <h1>SuperDuperDisplay Remote</h1>
+  <h2>Scenes</h2>
   <div class="grid" id="presets"></div>
   <h2>Mode</h2>
   <div class="grid" id="modes"></div>
@@ -129,9 +129,10 @@ function renderRemotePage(): string {
     });
 
     modesEl.innerHTML = '';
+    var MODE_LABELS = { live: 'Live', black: 'Black', hidden: 'Desktop' };
     MODES.forEach(function (mode) {
       var btn = document.createElement('button');
-      btn.textContent = mode[0].toUpperCase() + mode.slice(1);
+      btn.textContent = MODE_LABELS[mode];
       if (mode === state.mode) btn.className = 'active';
       btn.onclick = function () { ws.send(JSON.stringify({ type: 'setMode', mode: mode })); };
       modesEl.appendChild(btn);

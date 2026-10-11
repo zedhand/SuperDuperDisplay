@@ -1,41 +1,26 @@
-import { useEffect, useState, type ReactElement } from 'react'
-import { File, FolderOpen } from 'lucide-react'
-import type { FitMode, Preset, ZoneSource } from '@shared/types'
-import { resolveZones } from '@shared/layout'
-import { METRICS } from '@shared/telemetryMetrics'
+import { useState, type ReactElement } from 'react'
+import { Copy, Layers as LayersIcon, Maximize2, Pencil, Plus, Trash2 } from 'lucide-react'
+import type { Layout, Preset, ZoneSource } from '@shared/types'
+import {
+  computeAutoFitSizes,
+  resolveZones,
+  rotatedContentSize,
+  updateLayoutForPreset
+} from '@shared/layout'
 import { useConfigStore } from '../store/useConfigStore'
+import { useUndoStore } from '../store/useUndoStore'
+import { ZoneSourceFields, ZoneTypeSwitcher } from '../components/ZoneEditors'
+import { pushRecentMedia } from '../components/zoneDefaults'
+import { LayersEditor } from '../components/LayersEditor'
 
-const FIT_MODES: FitMode[] = ['cover', 'contain', 'stretch']
-const STATS_STYLES: Array<'bars' | 'gauges' | 'compact'> = ['bars', 'gauges', 'compact']
-
-function defaultMediaSource(source: { path?: string; folder?: string }): ZoneSource {
-  return {
-    type: 'media',
-    ...source,
-    shuffle: false,
-    intervalSec: 8,
-    fit: 'cover',
-    bg: 'blur',
-    bgColor: '#000000'
-  }
-}
-
-const TYPE_SWITCH_OPTIONS: Array<{ label: string; make: () => ZoneSource }> = [
-  { label: 'YouTube', make: () => ({ type: 'youtube', url: '' }) },
-  { label: 'Web', make: () => ({ type: 'web', url: '' }) },
-  {
-    label: 'Stats',
-    make: () => ({ type: 'stats', widgets: ['cpuTemp', 'gpuTemp'], style: 'bars' })
-  },
-  { label: 'Camera', make: () => ({ type: 'camera' }) },
-  { label: 'Blank', make: () => ({ type: 'blank' }) }
-]
+const NEW_PRESET_LAYOUT: Omit<Layout, 'id'> = { name: 'Full bleed', split: 'single', sizes: [1] }
 
 export function ScenesPage(): ReactElement {
   const config = useConfigStore((s) => s.config)
   const patch = useConfigStore((s) => s.patch)
+  const [editingLayersZoneId, setEditingLayersZoneId] = useState<string | null>(null)
 
-  if (!config) return <div className="p-6 text-white/50">Loading…</div>
+  if (!config) return <div className="p-6 text-[var(--text-4)]">Loading…</div>
 
   const activePreset = config.presets.find((p) => p.id === config.activePresetId)
   const layout = activePreset && config.layouts.find((l) => l.id === activePreset.layoutId)
@@ -46,196 +31,208 @@ export function ScenesPage(): ReactElement {
     patch({ presets: config.presets.map((p) => (p.id === presetId ? updater(p) : p)) })
   }
 
+  function renamePreset(presetId: string, name: string): void {
+    if (!name.trim()) return
+    updatePreset(presetId, (p) => ({ ...p, name: name.trim() }))
+  }
+
+  function trackRecentMedia(path: string): void {
+    if (!config) return
+    patch({ recentMedia: pushRecentMedia(config.recentMedia, path) })
+  }
+
+  function createPreset(): void {
+    if (!config) return
+    const layout: Layout = { ...NEW_PRESET_LAYOUT, id: crypto.randomUUID() }
+    const preset: Preset = {
+      id: crypto.randomUUID(),
+      name: 'New scene',
+      layoutId: layout.id,
+      zones: { zone0: { type: 'blank' } },
+      colorProfileId: config.colorProfiles[0]?.id ?? 'neutral',
+      fit: 'cover'
+    }
+    patch({
+      layouts: [...config.layouts, layout],
+      presets: [...config.presets, preset],
+      activePresetId: preset.id
+    })
+  }
+
+  // Duplicates get their own clone of the source layout (not a shared
+  // reference) so experimenting with a duplicate's split/sizes can never
+  // affect the original — the same clone-on-write principle
+  // `updateLayoutForPreset` applies on edit, just applied eagerly here since
+  // a fresh duplicate is definitionally not yet shared with anything.
+  function duplicatePreset(preset: Preset): void {
+    if (!config) return
+    const sourceLayout = config.layouts.find((l) => l.id === preset.layoutId)
+    const newLayout: Layout | null = sourceLayout
+      ? { ...sourceLayout, id: crypto.randomUUID() }
+      : null
+    const newPreset: Preset = {
+      ...preset,
+      id: crypto.randomUUID(),
+      name: `${preset.name} copy`,
+      layoutId: newLayout?.id ?? preset.layoutId
+    }
+    patch({
+      layouts: newLayout ? [...config.layouts, newLayout] : config.layouts,
+      presets: [...config.presets, newPreset]
+    })
+  }
+
+  function deletePreset(presetId: string): void {
+    if (!config || config.presets.length <= 1) return
+    const target = config.presets.find((p) => p.id === presetId)
+    if (!target) return
+    const previousPresets = config.presets
+    const previousLayouts = config.layouts
+    const previousActivePresetId = config.activePresetId
+    const remainingPresets = config.presets.filter((p) => p.id !== presetId)
+    const layoutStillUsed = remainingPresets.some((p) => p.layoutId === target.layoutId)
+    patch({
+      presets: remainingPresets,
+      layouts: layoutStillUsed
+        ? config.layouts
+        : config.layouts.filter((l) => l.id !== target.layoutId),
+      activePresetId:
+        config.activePresetId === presetId ? remainingPresets[0].id : config.activePresetId
+    })
+    useUndoStore.getState().offer(`Deleted scene "${target.name}"`, () =>
+      patch({
+        presets: previousPresets,
+        layouts: previousLayouts,
+        activePresetId: previousActivePresetId
+      })
+    )
+  }
+
   function setZoneSource(zoneId: string, source: ZoneSource): void {
     if (!activePreset) return
     updatePreset(activePreset.id, (p) => ({ ...p, zones: { ...p.zones, [zoneId]: source } }))
   }
 
-  async function pickFileForZone(zoneId: string): Promise<void> {
-    const path = await window.control.media.pickFile()
-    if (path) setZoneSource(zoneId, defaultMediaSource({ path }))
+  /**
+   * Reads the zone's currently-playing video/image's real pixel dimensions
+   * straight off the display window (the control window never renders
+   * actual media itself), then resizes the layout's `h`/`v` split so this
+   * zone's box matches that aspect ratio exactly — no cropping needed
+   * regardless of the zone's own `fit` mode. No-ops quietly for
+   * `single`/`grid` layouts (every zone is already full-bleed, nothing to
+   * resize) or when nothing has loaded yet to measure.
+   */
+  async function autoFitZone(zoneId: string, zoneIndex: number): Promise<void> {
+    if (!config || !activePreset || !layout) return
+    const natural = await window.control.zone.getNaturalSize(zoneId)
+    if (!natural || !config.display.match) return
+    const contentSize = rotatedContentSize(config.display.match, config.display.rotation)
+    const newSizes = computeAutoFitSizes(
+      layout,
+      zoneIndex,
+      natural.width / natural.height,
+      contentSize
+    )
+    if (!newSizes) return
+    patch(updateLayoutForPreset(config, activePreset, layout, (l) => ({ ...l, sizes: newSizes })))
   }
 
-  async function pickFolderForZone(zoneId: string): Promise<void> {
-    const folder = await window.control.media.pickFolder()
-    if (folder) setZoneSource(zoneId, defaultMediaSource({ folder }))
+  const editingZone = editingLayersZoneId && zones.find((z) => z.zoneId === editingLayersZoneId)
+  if (editingZone && editingZone.source.type === 'layers') {
+    return (
+      <LayersEditor
+        zoneId={editingZone.zoneId}
+        items={editingZone.source.items}
+        onChange={(items) => setZoneSource(editingZone.zoneId, { type: 'layers', items })}
+        onBack={() => setEditingLayersZoneId(null)}
+        recentMedia={config.recentMedia}
+        onMediaPicked={trackRecentMedia}
+      />
+    )
   }
 
   return (
     <div className="flex flex-col gap-6 p-6">
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-white">Presets</h2>
-        <div className="flex flex-wrap gap-2">
+        <h2 className="mb-3 text-lg font-semibold text-[var(--text-1)]">Scenes</h2>
+        <div className="flex flex-wrap items-center gap-2">
           {config.presets.map((preset) => (
-            <button
+            <PresetChip
               key={preset.id}
-              onClick={() => patch({ activePresetId: preset.id })}
-              className={`rounded-md border px-4 py-2 text-sm ${
-                config.activePresetId === preset.id
-                  ? 'border-fuchsia-400/60 bg-fuchsia-500/10 text-fuchsia-300'
-                  : 'border-white/10 bg-white/5 text-white/70 hover:border-white/20'
-              }`}
-            >
-              {preset.name}
-            </button>
+              preset={preset}
+              active={config.activePresetId === preset.id}
+              canDelete={config.presets.length > 1}
+              onActivate={() => patch({ activePresetId: preset.id })}
+              onRename={(name) => renamePreset(preset.id, name)}
+              onDuplicate={() => duplicatePreset(preset)}
+              onDelete={() => deletePreset(preset.id)}
+            />
           ))}
+          <button
+            onClick={createPreset}
+            className="flex items-center gap-1.5 rounded-md border border-[var(--border-1)] bg-[var(--surface-1)] px-3 py-2 text-sm text-[var(--text-3)] hover:border-[var(--border-2)]"
+          >
+            <Plus size={14} />
+            New
+          </button>
         </div>
       </section>
 
       {activePreset && (
         <section>
-          <h2 className="mb-3 text-lg font-semibold text-white">{activePreset.name} — zones</h2>
+          <h2 className="mb-3 text-lg font-semibold text-[var(--text-1)]">
+            {activePreset.name} — zones
+          </h2>
           <div className="flex flex-col gap-4">
-            {zones.map((zone) => {
+            {zones.map((zone, zoneIndex) => {
               const source = zone.source
+              const canAutoFit =
+                (layout?.split === 'h' || layout?.split === 'v') &&
+                source.type === 'media' &&
+                !source.folder
               return (
-                <div key={zone.zoneId} className="rounded-lg border border-white/10 bg-white/5 p-4">
+                <div
+                  key={zone.zoneId}
+                  className="rounded-lg border border-[var(--border-1)] bg-[var(--surface-1)] p-4"
+                >
                   <div className="mb-3 flex items-center justify-between">
-                    <div className="text-sm font-medium text-white">{zone.zoneId}</div>
-                    <div className="text-xs text-white/40">{source.type}</div>
+                    <div className="text-sm font-medium text-[var(--text-1)]">{zone.zoneId}</div>
+                    <div className="text-xs text-[var(--text-5)]">{source.type}</div>
                   </div>
 
-                  <div className="mb-3 flex flex-wrap gap-2">
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <ZoneTypeSwitcher
+                      onPick={(s) => setZoneSource(zone.zoneId, s)}
+                      recentMedia={config.recentMedia}
+                      onMediaPicked={trackRecentMedia}
+                    />
                     <button
-                      onClick={() => pickFileForZone(zone.zoneId)}
-                      className="flex w-fit items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/80 hover:border-white/20"
+                      onClick={() => setZoneSource(zone.zoneId, { type: 'layers', items: [] })}
+                      className="flex items-center gap-2 rounded-md border border-[var(--border-1)] bg-[var(--surface-1)] px-3 py-1.5 text-xs text-[var(--text-2)] hover:border-[var(--border-2)]"
                     >
-                      <File size={14} />
-                      Media file…
+                      <LayersIcon size={14} />
+                      Layers
                     </button>
-                    <button
-                      onClick={() => pickFolderForZone(zone.zoneId)}
-                      className="flex w-fit items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/80 hover:border-white/20"
-                    >
-                      <FolderOpen size={14} />
-                      Media folder…
-                    </button>
-                    {TYPE_SWITCH_OPTIONS.map(({ label, make }) => (
-                      <button
-                        key={label}
-                        onClick={() => setZoneSource(zone.zoneId, make())}
-                        className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/80 hover:border-white/20"
-                      >
-                        {label}
-                      </button>
-                    ))}
                   </div>
 
-                  {source.type === 'media' && (
-                    <div className="flex flex-col gap-3">
-                      <div className="truncate text-xs text-white/50">
-                        {source.path ??
-                          (source.folder ? `${source.folder} (folder)` : 'No media selected')}
-                      </div>
-
-                      {source.folder && (
-                        <div className="flex items-center gap-3">
-                          <label className="flex items-center gap-2 text-xs text-white/70">
-                            <input
-                              type="checkbox"
-                              checked={source.shuffle}
-                              onChange={(e) =>
-                                setZoneSource(zone.zoneId, { ...source, shuffle: e.target.checked })
-                              }
-                            />
-                            Shuffle
-                          </label>
-                          <label className="flex items-center gap-2 text-xs text-white/70">
-                            Every
-                            <input
-                              type="number"
-                              min={1}
-                              value={source.intervalSec}
-                              onChange={(e) =>
-                                setZoneSource(zone.zoneId, {
-                                  ...source,
-                                  intervalSec: Math.max(1, Number(e.target.value) || 1)
-                                })
-                              }
-                              className="w-14 rounded border border-white/10 bg-white/5 px-2 py-1 text-white"
-                            />
-                            sec
-                          </label>
-                        </div>
-                      )}
-
-                      <div className="flex gap-2">
-                        {FIT_MODES.map((fit) => (
-                          <button
-                            key={fit}
-                            onClick={() => setZoneSource(zone.zoneId, { ...source, fit })}
-                            className={`rounded-md border px-3 py-1 text-xs capitalize ${
-                              source.fit === fit
-                                ? 'border-fuchsia-400/60 bg-fuchsia-500/10 text-fuchsia-300'
-                                : 'border-white/10 bg-white/5 text-white/70 hover:border-white/20'
-                            }`}
-                          >
-                            {fit}
-                          </button>
-                        ))}
-                      </div>
-
-                      {source.fit === 'contain' && (
-                        <div className="flex items-center gap-2">
-                          {(['solid', 'blur'] as const).map((bg) => (
-                            <button
-                              key={bg}
-                              onClick={() => setZoneSource(zone.zoneId, { ...source, bg })}
-                              className={`rounded-md border px-3 py-1 text-xs capitalize ${
-                                source.bg === bg
-                                  ? 'border-fuchsia-400/60 bg-fuchsia-500/10 text-fuchsia-300'
-                                  : 'border-white/10 bg-white/5 text-white/70 hover:border-white/20'
-                              }`}
-                            >
-                              {bg} background
-                            </button>
-                          ))}
-                          {source.bg === 'solid' && (
-                            <input
-                              type="color"
-                              value={source.bgColor}
-                              onChange={(e) =>
-                                setZoneSource(zone.zoneId, { ...source, bgColor: e.target.value })
-                              }
-                              className="h-7 w-10 rounded border border-white/10 bg-transparent"
-                            />
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {source.type === 'youtube' && (
-                    <UrlField
-                      key={`${activePreset.id}-${zone.zoneId}`}
-                      placeholder="https://www.youtube.com/watch?v=…"
-                      value={source.url}
-                      onCommit={(url) => setZoneSource(zone.zoneId, { type: 'youtube', url })}
-                    />
-                  )}
-
-                  {source.type === 'web' && (
-                    <UrlField
-                      key={`${activePreset.id}-${zone.zoneId}`}
-                      placeholder="https://example.com/dashboard"
-                      value={source.url}
-                      onCommit={(url) => setZoneSource(zone.zoneId, { ...source, url })}
-                    />
-                  )}
-
-                  {source.type === 'stats' && (
-                    <StatsEditor
-                      widgets={source.widgets}
-                      style={source.style}
-                      onChange={(patch) => setZoneSource(zone.zoneId, { ...source, ...patch })}
-                    />
-                  )}
-
-                  {source.type === 'camera' && (
-                    <CameraEditor
-                      deviceId={source.deviceId}
-                      rtspUrl={source.rtspUrl}
-                      onChange={(patch) => setZoneSource(zone.zoneId, { type: 'camera', ...patch })}
+                  {source.type === 'layers' ? (
+                    <button
+                      onClick={() => setEditingLayersZoneId(zone.zoneId)}
+                      className="flex items-center gap-2 rounded-md border border-[var(--accent-border-soft)] bg-[var(--accent-bg)] px-3 py-2 text-xs text-[var(--accent-light)] hover:border-[var(--accent-border)]"
+                    >
+                      <Maximize2 size={14} />
+                      {source.items.length} layer{source.items.length === 1 ? '' : 's'} — Edit
+                      layers →
+                    </button>
+                  ) : (
+                    <ZoneSourceFields
+                      key={zone.zoneId}
+                      source={source}
+                      onChange={(s) => setZoneSource(zone.zoneId, s)}
+                      autoFit={{
+                        available: canAutoFit,
+                        onClick: () => autoFitZone(zone.zoneId, zoneIndex)
+                      }}
                     />
                   )}
                 </div>
@@ -248,165 +245,87 @@ export function ScenesPage(): ReactElement {
   )
 }
 
-function UrlField({
-  value,
-  placeholder,
-  onCommit
+function PresetChip({
+  preset,
+  active,
+  canDelete,
+  onActivate,
+  onRename,
+  onDuplicate,
+  onDelete
 }: {
-  value: string
-  placeholder: string
-  onCommit: (value: string) => void
+  preset: Preset
+  active: boolean
+  canDelete: boolean
+  onActivate: () => void
+  onRename: (name: string) => void
+  onDuplicate: () => void
+  onDelete: () => void
 }): ReactElement {
-  const [draft, setDraft] = useState(value)
+  const [renaming, setRenaming] = useState(false)
+  const [draft, setDraft] = useState(preset.name)
 
-  return (
-    <input
-      type="text"
-      value={draft}
-      placeholder={placeholder}
-      onChange={(e) => setDraft(e.target.value)}
-      onBlur={() => onCommit(draft)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') onCommit(draft)
-      }}
-      className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30"
-    />
-  )
-}
-
-function StatsEditor({
-  widgets,
-  style,
-  onChange
-}: {
-  widgets: string[]
-  style: 'bars' | 'gauges' | 'compact'
-  onChange: (patch: { widgets?: string[]; style?: 'bars' | 'gauges' | 'compact' }) => void
-}): ReactElement {
-  function toggleWidget(key: string): void {
-    const next = widgets.includes(key) ? widgets.filter((w) => w !== key) : [...widgets, key]
-    onChange({ widgets: next })
+  if (renaming) {
+    return (
+      <input
+        autoFocus
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => {
+          onRename(draft)
+          setRenaming(false)
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            onRename(draft)
+            setRenaming(false)
+          }
+          if (e.key === 'Escape') {
+            setDraft(preset.name)
+            setRenaming(false)
+          }
+        }}
+        className="rounded-md border border-[var(--accent-border)] bg-[var(--surface-1)] px-3 py-2 text-sm text-[var(--text-1)]"
+      />
+    )
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap gap-2">
-        {METRICS.map((metric) => (
-          <button
-            key={metric.key}
-            onClick={() => toggleWidget(metric.key)}
-            className={`rounded-md border px-3 py-1 text-xs ${
-              widgets.includes(metric.key)
-                ? 'border-fuchsia-400/60 bg-fuchsia-500/10 text-fuchsia-300'
-                : 'border-white/10 bg-white/5 text-white/70 hover:border-white/20'
-            }`}
-          >
-            {metric.label}
-          </button>
-        ))}
-      </div>
-      <div className="flex gap-2">
-        {STATS_STYLES.map((s) => (
-          <button
-            key={s}
-            onClick={() => onChange({ style: s })}
-            className={`rounded-md border px-3 py-1 text-xs capitalize ${
-              style === s
-                ? 'border-fuchsia-400/60 bg-fuchsia-500/10 text-fuchsia-300'
-                : 'border-white/10 bg-white/5 text-white/70 hover:border-white/20'
-            }`}
-          >
-            {s}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function CameraEditor({
-  deviceId,
-  rtspUrl,
-  onChange
-}: {
-  deviceId?: string
-  rtspUrl?: string
-  onChange: (patch: { deviceId?: string; rtspUrl?: string }) => void
-}): ReactElement {
-  const mode = rtspUrl != null ? 'rtsp' : 'usb'
-  const [devices, setDevices] = useState<MediaDeviceInfo[]>([])
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function loadDevices(): Promise<void> {
-      let list = await navigator.mediaDevices.enumerateDevices()
-      const hasLabels = list.some((d) => d.kind === 'videoinput' && d.label)
-      if (!hasLabels) {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: true })
-          stream.getTracks().forEach((track) => track.stop())
-          list = await navigator.mediaDevices.enumerateDevices()
-        } catch {
-          // permission denied or no camera; fall back to unlabeled ids
-        }
-      }
-      if (!cancelled) setDevices(list.filter((d) => d.kind === 'videoinput'))
-    }
-
-    loadDevices()
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="flex gap-2">
+    <div
+      className={`flex items-center gap-1 rounded-md border pl-4 pr-1.5 py-1 text-sm ${
+        active
+          ? 'border-[var(--accent-border)] bg-[var(--accent-bg)] text-[var(--accent-light)]'
+          : 'border-[var(--border-1)] bg-[var(--surface-1)] text-[var(--text-3)] hover:border-[var(--border-2)]'
+      }`}
+    >
+      <button onClick={onActivate} className="py-1">
+        {preset.name}
+      </button>
+      <button
+        onClick={() => {
+          setDraft(preset.name)
+          setRenaming(true)
+        }}
+        className="rounded p-1 hover:bg-[var(--surface-2)]"
+        title="Rename"
+      >
+        <Pencil size={12} />
+      </button>
+      <button
+        onClick={onDuplicate}
+        className="rounded p-1 hover:bg-[var(--surface-2)]"
+        title="Duplicate"
+      >
+        <Copy size={12} />
+      </button>
+      {canDelete && (
         <button
-          onClick={() => onChange({ deviceId, rtspUrl: undefined })}
-          className={`rounded-md border px-3 py-1 text-xs ${
-            mode === 'usb'
-              ? 'border-fuchsia-400/60 bg-fuchsia-500/10 text-fuchsia-300'
-              : 'border-white/10 bg-white/5 text-white/70 hover:border-white/20'
-          }`}
+          onClick={onDelete}
+          className="rounded p-1 hover:bg-[var(--surface-2)]"
+          title="Delete"
         >
-          USB webcam
+          <Trash2 size={12} />
         </button>
-        <button
-          onClick={() => onChange({ deviceId: undefined, rtspUrl: rtspUrl ?? '' })}
-          className={`rounded-md border px-3 py-1 text-xs ${
-            mode === 'rtsp'
-              ? 'border-fuchsia-400/60 bg-fuchsia-500/10 text-fuchsia-300'
-              : 'border-white/10 bg-white/5 text-white/70 hover:border-white/20'
-          }`}
-        >
-          RTSP
-        </button>
-      </div>
-
-      {mode === 'usb' && (
-        <select
-          value={deviceId ?? ''}
-          onChange={(e) => onChange({ deviceId: e.target.value || undefined, rtspUrl: undefined })}
-          className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
-        >
-          <option value="">System default</option>
-          {devices.map((d, i) => (
-            <option key={d.deviceId} value={d.deviceId}>
-              {d.label || `Camera ${i + 1}`}
-            </option>
-          ))}
-        </select>
-      )}
-
-      {mode === 'rtsp' && (
-        <UrlField
-          key="rtsp"
-          placeholder="rtsp://user:pass@192.168.1.x:554/stream"
-          value={rtspUrl ?? ''}
-          onCommit={(url) => onChange({ deviceId: undefined, rtspUrl: url })}
-        />
       )}
     </div>
   )

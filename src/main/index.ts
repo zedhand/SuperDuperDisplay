@@ -15,16 +15,15 @@ import {
 import { registerMediaProtocolHandler, registerMediaProtocolScheme } from './protocol'
 import { FolderSyncManager } from './media/folderSync'
 import { TelemetryService } from './telemetry'
+import { NowPlayingService } from './media/nowPlaying'
 import { TriggerEngine } from './triggerEngine'
+import { Scheduler } from './scheduler'
 import { PowerManager } from './power'
 import { TrayManager } from './tray'
 import { RtspManager } from './camera/rtsp'
 import { RemoteServer } from './remote/server'
-import {
-  registerMediaPermissions,
-  registerWebviewHardening,
-  registerYoutubeEmbedReferer
-} from './webSecurity'
+import { registerMediaPermissions, registerWebviewHardening } from './webSecurity'
+import { unregisterHotkeys } from './hotkeys'
 import { IpcChannel } from '@shared/ipc'
 
 registerMediaProtocolScheme()
@@ -44,11 +43,10 @@ if (!gotLock) {
   })
 
   app.whenReady().then(() => {
-    electronApp.setAppUserModelId('com.zedhand.minidisplay')
+    electronApp.setAppUserModelId('com.zedhand.superduperdisplay')
     registerMediaProtocolHandler()
     registerMediaPermissions()
     registerWebviewHardening()
-    registerYoutubeEmbedReferer()
 
     app.on('browser-window-created', (_event, window) => {
       optimizer.watchWindowShortcuts(window)
@@ -91,6 +89,17 @@ if (!gotLock) {
       triggerEngine.evaluate(getConfig().triggers, telemetry)
     })
     telemetryService.start(config.telemetry)
+
+    const nowPlayingService = new NowPlayingService((info) => {
+      displayWin.webContents.send(IpcChannel.NowPlayingTick, info)
+    })
+    nowPlayingService.start()
+
+    const scheduler = new Scheduler(
+      () => getConfig().schedule,
+      (presetId) => broadcastConfig(ctx, setConfig({ activePresetId: presetId }))
+    )
+    scheduler.start()
 
     const trayManager = new TrayManager(
       join(__dirname, '../../resources/icon.png'),
@@ -145,7 +154,7 @@ if (!gotLock) {
     displayWin.webContents.once('did-finish-load', () => broadcastConfig(ctx, getConfig()))
     controlWin.webContents.once('did-finish-load', () => broadcastConfig(ctx, getConfig()))
 
-    if (is.dev && process.env['MINIDISPLAY_AUTO_CAPTURE']) {
+    if (is.dev && process.env['SUPERDUPERDISPLAY_AUTO_CAPTURE']) {
       displayWin.webContents.once('did-finish-load', () => {
         setTimeout(() => {
           captureDisplayWindow(displayWin).then(({ filePath }) =>
@@ -182,10 +191,13 @@ if (!gotLock) {
       isQuitting = true
       folderSyncManager.stopAll()
       telemetryService.stop()
+      nowPlayingService.stop()
       powerManager.stopIdleWatch()
       trayManager.destroy()
       rtspManager.stopAll()
       remoteServer.stop()
+      unregisterHotkeys()
+      scheduler.stop()
     })
   })
 

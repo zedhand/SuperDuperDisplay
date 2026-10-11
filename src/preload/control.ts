@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { IpcChannel } from '@shared/ipc'
 import type {
   AppConfig,
+  CalendarEvent,
   DisplayInfo,
   DisplayMatch,
   DisplayMode,
@@ -19,7 +20,10 @@ const controlApi = {
       const listener = (_event: Electron.IpcRendererEvent, config: AppConfig): void => cb(config)
       ipcRenderer.on(IpcChannel.ConfigChanged, listener)
       return () => ipcRenderer.removeListener(IpcChannel.ConfigChanged, listener)
-    }
+    },
+    export: (): Promise<{ filePath: string } | null> => ipcRenderer.invoke(IpcChannel.ConfigExport),
+    import: (): Promise<{ config: AppConfig } | { error: string } | null> =>
+      ipcRenderer.invoke(IpcChannel.ConfigImport)
   },
   displays: {
     list: (): Promise<Array<DisplayInfo & { isTarget: boolean }>> =>
@@ -64,6 +68,14 @@ const controlApi = {
   debug: {
     captureDisplay: (): Promise<{ filePath: string }> =>
       ipcRenderer.invoke(IpcChannel.DebugCaptureDisplay)
+  },
+  zone: {
+    getNaturalSize: (zoneId: string): Promise<{ width: number; height: number } | null> =>
+      ipcRenderer.invoke(IpcChannel.ZoneGetNaturalSize, zoneId)
+  },
+  calendar: {
+    getAgenda: (icsUrl: string): Promise<{ events: CalendarEvent[]; error?: string }> =>
+      ipcRenderer.invoke(IpcChannel.CalendarAgenda, icsUrl)
   }
 }
 
