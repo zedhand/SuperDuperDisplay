@@ -30,7 +30,7 @@ describe('buildColorFilterCss', () => {
 
   it('appends a url() reference to the shared gamma filter id when gamma is not neutral', () => {
     const css = buildColorFilterCss({ ...neutral, gamma: 1.8 })
-    expect(css).toContain('url(#minidisplay-gamma)')
+    expect(css).toContain('url(#superduperdisplay-gamma)')
   })
 })
 

@@ -2021,18 +2021,36 @@ control-window changes:
 1. Temporarily set `App.tsx`'s default `useState<PageId>(...)` to the
    page under test.
 2. Temporarily add a `did-finish-load` capture for `controlWin` next to
-   the existing `MINIDISPLAY_AUTO_CAPTURE` block in `src/main/index.ts`
+   the existing `SUPERDUPERDISPLAY_AUTO_CAPTURE` block in `src/main/index.ts`
    (which already auto-captures `displayWin` after 1.5s in dev mode) —
    `captureDisplayWindow()` in `src/main/ipc.ts` works on any
    `BrowserWindow`.
 3. If the page needs specific config state (e.g. a zone already set to
-   a given type), seed `%APPDATA%/minidisplay/config.json` directly
+   a given type), seed `%APPDATA%/superduperdisplay/config.json` directly
    with a full valid `AppConfig` (matches `src/shared/schema.ts`'s
    `appConfigSchema` — check real layout/preset IDs in
    `defaultConfig`, don't guess them).
-4. Run `MSYS_NO_PATHCONV=1 MINIDISPLAY_AUTO_CAPTURE=1 npm run dev`,
+4. Run `MSYS_NO_PATHCONV=1 SUPERDUPERDISPLAY_AUTO_CAPTURE=1 npm run dev`,
    read the `[debug] control capture: <path>` line from stdout, and
    `Read` the PNG.
 5. **Always revert** the two temporary edits and remove any seeded
    `config.json` / capture PNGs afterward — check `git status --short`
    comes back to only the intended feature diff before finishing.
+
+## Full rebrand of remaining identifiers (2026-10-11)
+
+- Finished the rename that the earlier pass deliberately stopped short
+  of: the RTSP multipart boundary, the `SUPERDUPERDISPLAY_AUTO_CAPTURE`
+  dev env var, the debug-capture temp filename, the `AlertOverlay`
+  `@keyframes` names and the `colorProfile.ts` SVG filter id now all use
+  `superduperdisplay`.
+- The YouTube relay now points at
+  `https://zedhand.github.io/superduperdisplay-yt-embed/`. This only works
+  once the `minidisplay-yt-embed` repo is renamed to
+  `superduperdisplay-yt-embed` and its GitHub Pages site redeploys —
+  GitHub Pages does not redirect after a repo rename.
+- Kept on purpose: the `minidisplay` legacy-config migration in
+  `src/main/store.ts`, which still has to find old installs' config.
+- Replaced the stale `buildYoutubeEmbedUrl` test (that function was
+  removed when the relay landed) with one covering
+  `buildYoutubeEmbedRelayUrl`.

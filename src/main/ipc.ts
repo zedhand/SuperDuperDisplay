@@ -210,7 +210,7 @@ export function registerIpcHandlers(ctx: IpcContext): void {
 
 export async function captureDisplayWindow(win: BrowserWindow): Promise<{ filePath: string }> {
   const image = await win.webContents.capturePage()
-  const filePath = join(app.getPath('temp'), `minidisplay-capture-${Date.now()}.png`)
+  const filePath = join(app.getPath('temp'), `superduperdisplay-capture-${Date.now()}.png`)
   await writeFile(filePath, image.toPNG())
   return { filePath }
 }

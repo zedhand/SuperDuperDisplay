@@ -154,7 +154,7 @@ if (!gotLock) {
     displayWin.webContents.once('did-finish-load', () => broadcastConfig(ctx, getConfig()))
     controlWin.webContents.once('did-finish-load', () => broadcastConfig(ctx, getConfig()))
 
-    if (is.dev && process.env['MINIDISPLAY_AUTO_CAPTURE']) {
+    if (is.dev && process.env['SUPERDUPERDISPLAY_AUTO_CAPTURE']) {
       displayWin.webContents.once('did-finish-load', () => {
         setTimeout(() => {
           captureDisplayWindow(displayWin).then(({ filePath }) =>

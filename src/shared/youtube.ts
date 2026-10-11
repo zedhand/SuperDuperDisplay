@@ -20,13 +20,13 @@ export function extractYoutubeId(input: string): string | null {
  * "video unavailable" — no matter what Referer/origin header is spoofed on
  * the request; this was tested directly and ruled out. The only working
  * fix is for the iframe's actual top-level navigation to be a real public
- * https origin. `minidisplay-yt-embed` is a small static page (source:
- * https://github.com/zedhand/minidisplay-yt-embed) hosted on GitHub Pages
+ * https origin. `superduperdisplay-yt-embed` is a small static page (source:
+ * https://github.com/zedhand/superduperdisplay-yt-embed) hosted on GitHub Pages
  * for exactly that: it takes `?v=<id>` and embeds the video itself, so
  * YoutubeZone.tsx loads *this* page in a <webview> instead of embedding
  * YouTube directly.
  */
-const YOUTUBE_EMBED_RELAY_URL = 'https://zedhand.github.io/minidisplay-yt-embed/'
+const YOUTUBE_EMBED_RELAY_URL = 'https://zedhand.github.io/superduperdisplay-yt-embed/'
 
 /** `initialVolumePct` (0-100) only sets the *starting* volume/mute state — live changes after that go through the relay page's own `window.__setVolume()`, called via `webview.executeJavaScript()`, so turning the volume up/down never reloads (and restarts) the video. */
 export function buildYoutubeEmbedRelayUrl(videoId: string, initialVolumePct: number): string {

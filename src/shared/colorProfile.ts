@@ -1,6 +1,6 @@
 import type { ColorProfile } from './types'
 
-export const GAMMA_FILTER_ID = 'minidisplay-gamma'
+export const GAMMA_FILTER_ID = 'superduperdisplay-gamma'
 
 /**
  * Builds the CSS `filter` value for a color profile. Brightness/contrast/

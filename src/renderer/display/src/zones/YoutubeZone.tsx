@@ -13,7 +13,7 @@ import { ZonePlaceholder } from './ZonePlaceholder'
  * every `volume` change, or the `src` string would change and reload the
  * webview on every tick of a volume slider). Live changes after that go
  * through the relay page's own `window.__setVolume()` (see
- * minidisplay-yt-embed's index.html), called via `webview.executeJavaScript()`,
+ * superduperdisplay-yt-embed's index.html), called via `webview.executeJavaScript()`,
  * so turning the volume up/down never reloads — and therefore never
  * restarts — the video.
  */
