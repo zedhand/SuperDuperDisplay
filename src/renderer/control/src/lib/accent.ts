@@ -24,14 +24,24 @@ function mixWithWhite(rgb: [number, number, number], amount: number): [number, n
   return rgb.map((c) => Math.round(c * (1 - amount) + 255 * amount)) as [number, number, number]
 }
 
-export function computeAccentVars(hex: string): CSSProperties {
+function mixWithBlack(rgb: [number, number, number], amount: number): [number, number, number] {
+  return rgb.map((c) => Math.round(c * (1 - amount))) as [number, number, number]
+}
+
+/**
+ * `--accent-light` is the accent's foreground shade (selected-pill text,
+ * active sidebar item). On the dark theme that's the accent lifted toward
+ * white; on the light theme a lifted pastel sits on a pale pink pill and is
+ * nearly unreadable, so it's pushed toward black instead.
+ */
+export function computeAccentVars(hex: string, theme: 'dark' | 'light' = 'dark'): CSSProperties {
   let rgb: [number, number, number]
   try {
     rgb = hexToRgb(hex)
   } catch {
     rgb = [217, 70, 239] // fall back to the original default accent on a malformed value
   }
-  const light = mixWithWhite(rgb, 0.55)
+  const light = theme === 'light' ? mixWithBlack(rgb, 0.35) : mixWithWhite(rgb, 0.55)
 
   return {
     '--accent': `rgb(${rgb.join(',')})`,
