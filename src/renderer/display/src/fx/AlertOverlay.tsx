@@ -57,11 +57,11 @@ export function AlertOverlay(): ReactElement | null {
   return (
     <>
       <style>{`
-        @keyframes minidisplay-alert-pulse {
+        @keyframes superduperdisplay-alert-pulse {
           0%, 100% { opacity: 0.35; }
           50% { opacity: 0.85; }
         }
-        @keyframes minidisplay-alert-flash {
+        @keyframes superduperdisplay-alert-flash {
           0% { opacity: 0.85; }
           100% { opacity: 0; }
         }
@@ -73,7 +73,7 @@ export function AlertOverlay(): ReactElement | null {
             inset: 0,
             pointerEvents: 'none',
             boxShadow: glowColors.map((color) => `inset 0 0 60px 10px ${color}`).join(', '),
-            animation: 'minidisplay-alert-pulse 1.2s ease-in-out infinite'
+            animation: 'superduperdisplay-alert-pulse 1.2s ease-in-out infinite'
           }}
         />
       )}
@@ -85,7 +85,7 @@ export function AlertOverlay(): ReactElement | null {
             inset: 0,
             pointerEvents: 'none',
             background: flash.color,
-            animation: `minidisplay-alert-flash ${FLASH_DURATION_MS}ms ease-out forwards`
+            animation: `superduperdisplay-alert-flash ${FLASH_DURATION_MS}ms ease-out forwards`
           }}
         />
       ))}
