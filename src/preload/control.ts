@@ -3,12 +3,14 @@ import { IpcChannel } from '@shared/ipc'
 import type {
   AppConfig,
   CalendarEvent,
+  FeedItem,
   DisplayInfo,
   DisplayMatch,
   DisplayMode,
   RemoteStatus,
   Rotation,
-  Telemetry
+  Telemetry,
+  WeatherReport
 } from '@shared/types'
 
 const controlApi = {
@@ -76,6 +78,17 @@ const controlApi = {
   calendar: {
     getAgenda: (icsUrl: string): Promise<{ events: CalendarEvent[]; error?: string }> =>
       ipcRenderer.invoke(IpcChannel.CalendarAgenda, icsUrl)
+  },
+  weather: {
+    get: (
+      location: string,
+      units: 'metric' | 'imperial'
+    ): Promise<{ report: WeatherReport | null; error?: string }> =>
+      ipcRenderer.invoke(IpcChannel.WeatherGet, location, units)
+  },
+  rss: {
+    get: (feedUrl: string): Promise<{ title: string; items: FeedItem[]; error?: string }> =>
+      ipcRenderer.invoke(IpcChannel.RssGet, feedUrl)
   }
 }
 

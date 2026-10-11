@@ -450,6 +450,161 @@ export function CalendarEditor({
   )
 }
 
+export function WeatherEditor({
+  location,
+  units,
+  color,
+  showForecast,
+  onChange
+}: {
+  location: string
+  units: 'metric' | 'imperial'
+  color: string
+  showForecast: boolean
+  onChange: (patch: {
+    location?: string
+    units?: 'metric' | 'imperial'
+    color?: string
+    showForecast?: boolean
+  }) => void
+}): ReactElement {
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1.5">
+        <UrlField
+          placeholder="City, e.g. London or Austin, Texas"
+          value={location}
+          onCommit={(value) => onChange({ location: value })}
+        />
+        <p className="text-[11px] leading-snug text-[var(--text-5)]">
+          A city or place name, or &quot;latitude, longitude&quot;. Weather comes from Open-Meteo,
+          no account or API key needed.
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {(['metric', 'imperial'] as const).map((u) => (
+          <button
+            key={u}
+            onClick={() => onChange({ units: u })}
+            className={`rounded-md border px-3 py-1 text-xs ${
+              units === u
+                ? 'border-[var(--accent-border)] bg-[var(--accent-bg)] text-[var(--accent-light)]'
+                : 'border-[var(--border-1)] bg-[var(--surface-1)] text-[var(--text-3)] hover:border-[var(--border-2)]'
+            }`}
+          >
+            {u === 'metric' ? '°C, km/h' : '°F, mph'}
+          </button>
+        ))}
+      </div>
+      <div className="flex items-center gap-3">
+        <label className="flex items-center gap-2 text-xs text-[var(--text-3)]">
+          <input
+            type="checkbox"
+            checked={showForecast}
+            onChange={(e) => onChange({ showForecast: e.target.checked })}
+          />
+          Show 5-day forecast
+        </label>
+        <input
+          type="color"
+          value={color}
+          onChange={(e) => onChange({ color: e.target.value })}
+          className="h-7 w-10 rounded border border-[var(--border-1)] bg-transparent"
+        />
+      </div>
+    </div>
+  )
+}
+
+export function RssEditor({
+  feedUrl,
+  mode,
+  color,
+  maxItems,
+  intervalSec,
+  onChange
+}: {
+  feedUrl: string
+  mode: 'list' | 'rotate'
+  color: string
+  maxItems: number
+  intervalSec: number
+  onChange: (patch: {
+    feedUrl?: string
+    mode?: 'list' | 'rotate'
+    color?: string
+    maxItems?: number
+    intervalSec?: number
+  }) => void
+}): ReactElement {
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1.5">
+        <UrlField
+          placeholder="https://example.com/feed.xml"
+          value={feedUrl}
+          onCommit={(value) => onChange({ feedUrl: value.trim() })}
+        />
+        <p className="text-[11px] leading-snug text-[var(--text-5)]">
+          Any RSS or Atom feed link. Headlines refresh every 10 minutes.
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {(['list', 'rotate'] as const).map((m) => (
+          <button
+            key={m}
+            onClick={() => onChange({ mode: m })}
+            className={`rounded-md border px-3 py-1 text-xs ${
+              mode === m
+                ? 'border-[var(--accent-border)] bg-[var(--accent-bg)] text-[var(--accent-light)]'
+                : 'border-[var(--border-1)] bg-[var(--surface-1)] text-[var(--text-3)] hover:border-[var(--border-2)]'
+            }`}
+          >
+            {m === 'list' ? 'Headline list' : 'One at a time'}
+          </button>
+        ))}
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-2 text-xs text-[var(--text-3)]">
+          Headlines
+          <input
+            type="number"
+            min={1}
+            max={50}
+            value={maxItems}
+            onChange={(e) => {
+              const n = Math.round(Number(e.target.value))
+              if (n >= 1 && n <= 50) onChange({ maxItems: n })
+            }}
+            className="w-16 rounded-md border border-[var(--border-1)] bg-[var(--surface-1)] px-2 py-1 text-xs text-[var(--text-1)]"
+          />
+        </label>
+        {mode === 'rotate' && (
+          <label className="flex items-center gap-2 text-xs text-[var(--text-3)]">
+            Seconds each
+            <input
+              type="number"
+              min={2}
+              value={intervalSec}
+              onChange={(e) => {
+                const n = Number(e.target.value)
+                if (n >= 2) onChange({ intervalSec: n })
+              }}
+              className="w-16 rounded-md border border-[var(--border-1)] bg-[var(--surface-1)] px-2 py-1 text-xs text-[var(--text-1)]"
+            />
+          </label>
+        )}
+        <input
+          type="color"
+          value={color}
+          onChange={(e) => onChange({ color: e.target.value })}
+          className="h-7 w-10 rounded border border-[var(--border-1)] bg-transparent"
+        />
+      </div>
+    </div>
+  )
+}
+
 export function NowPlayingEditor({
   color,
   align,
@@ -923,6 +1078,27 @@ export function ZoneSourceFields({
           accentColor={source.accentColor}
           mode={source.mode}
           icsUrl={source.icsUrl}
+          onChange={(patch) => onChange({ ...source, ...patch })}
+        />
+      )
+    case 'weather':
+      return (
+        <WeatherEditor
+          location={source.location}
+          units={source.units}
+          color={source.color}
+          showForecast={source.showForecast}
+          onChange={(patch) => onChange({ ...source, ...patch })}
+        />
+      )
+    case 'rss':
+      return (
+        <RssEditor
+          feedUrl={source.feedUrl}
+          mode={source.mode}
+          color={source.color}
+          maxItems={source.maxItems}
+          intervalSec={source.intervalSec}
           onChange={(patch) => onChange({ ...source, ...patch })}
         />
       )
