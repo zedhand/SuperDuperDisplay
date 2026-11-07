@@ -72,13 +72,15 @@ const zoneSourceSchema: z.ZodType<ZoneSource> = z.lazy(() =>
       format: z.enum(['12h', '24h']),
       showDate: z.boolean(),
       color: z.string(),
-      align: z.enum(['left', 'center', 'right'])
+      align: z.enum(['left', 'center', 'right']),
+      timeZone: z.string().optional()
     }),
     z.object({
       type: z.literal('calendar'),
       accentColor: z.string(),
       mode: z.enum(['grid', 'agenda']).default('grid'),
-      icsUrl: z.string().optional()
+      icsUrl: z.string().optional(),
+      timeZone: z.string().optional()
     }),
     z.object({
       type: z.literal('weather'),
@@ -202,6 +204,7 @@ export const appConfigSchema: z.ZodType<AppConfig> = z.object({
   colorProfiles: z.array(colorProfileSchema),
   triggers: z.array(triggerSchema),
   schedule: z.array(scheduleEntrySchema).default([]),
+  scheduleTimeZone: z.string().optional(),
   recentMedia: z.array(z.string()).default([]),
   telemetry: z.object({
     source: z.enum(['auto', 'lhm', 'si']),

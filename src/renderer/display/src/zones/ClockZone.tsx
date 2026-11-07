@@ -1,4 +1,5 @@
 import { useEffect, useState, type CSSProperties, type ReactElement } from 'react'
+import { validZone } from '@shared/timeZone'
 
 /** Re-renders once per minute, aligned to the minute boundary — not every second, since only HH:MM is ever shown. */
 function useNow(): Date {
@@ -30,20 +31,29 @@ export function ClockZone({
   format,
   showDate,
   color,
-  align
+  align,
+  timeZone
 }: {
   format: '12h' | '24h'
   showDate: boolean
   color: string
   align: 'left' | 'center' | 'right'
+  timeZone?: string
 }): ReactElement {
   const now = useNow()
+  const tz = validZone(timeZone)
   const time = now.toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit',
-    hour12: format === '12h'
+    hour12: format === '12h',
+    timeZone: tz
   })
-  const date = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
+  const date = now.toLocaleDateString([], {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    timeZone: tz
+  })
 
   return (
     <div

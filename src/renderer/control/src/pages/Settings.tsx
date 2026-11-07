@@ -1,5 +1,6 @@
 import { useState, type ReactElement, type ReactNode } from 'react'
 import type { AppConfig, ScheduleEntry } from '@shared/types'
+import { TIME_ZONE_OPTIONS } from '@shared/timeZone'
 import { useConfigStore } from '../store/useConfigStore'
 
 const TELEMETRY_SOURCES: Array<{ value: AppConfig['telemetry']['source']; label: string }> = [
@@ -316,6 +317,20 @@ function ScheduleSection(): ReactElement {
   return (
     <Section title="Schedule">
       <div className="flex flex-col gap-3">
+        <label className="flex items-center gap-2 text-xs text-[var(--text-3)]">
+          Schedule time zone
+          <select
+            value={config.scheduleTimeZone ?? ''}
+            onChange={(e) => patch({ scheduleTimeZone: e.target.value || undefined })}
+            className="rounded border border-[var(--border-1)] bg-[var(--surface-1)] px-2 py-1 text-sm text-[var(--text-1)]"
+          >
+            {TIME_ZONE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
         {config.schedule.length === 0 && (
           <p className="text-xs text-[var(--text-5)]">
             No scheduled scene switches yet — e.g. &ldquo;Stats only&rdquo; every weekday morning.

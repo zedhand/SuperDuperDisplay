@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactElement } from 'react'
 import type { CalendarEvent } from '@shared/types'
+import { validZone } from '@shared/timeZone'
 
 const WEEKDAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 const AGENDA_POLL_MS = 5 * 60 * 1000
@@ -14,21 +15,43 @@ function useToday(): Date {
   return today
 }
 
+/** Today's calendar date as seen in `timeZone` (system zone when undefined). month is 0-based. */
+function dateInZone(now: Date, timeZone?: string): { year: number; month: number; day: number } {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric'
+  }).formatToParts(now)
+  const get = (type: string): number => Number(parts.find((p) => p.type === type)?.value)
+  return { year: get('year'), month: get('month') - 1, day: get('day') }
+}
+
+// Pure calendar arithmetic, done in UTC so the result doesn't depend on any zone.
 function buildMonthGrid(year: number, month: number): Array<number | null> {
-  const firstWeekday = new Date(year, month, 1).getDay()
-  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const firstWeekday = new Date(Date.UTC(year, month, 1)).getUTCDay()
+  const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate()
   const cells: Array<number | null> = Array(firstWeekday).fill(null)
   for (let day = 1; day <= daysInMonth; day++) cells.push(day)
   while (cells.length % 7 !== 0) cells.push(null)
   return cells
 }
 
-function MonthGridView({ accentColor }: { accentColor: string }): ReactElement {
-  const today = useToday()
-  const year = today.getFullYear()
-  const month = today.getMonth()
+function MonthGridView({
+  accentColor,
+  timeZone
+}: {
+  accentColor: string
+  timeZone?: string
+}): ReactElement {
+  const now = useToday()
+  const { year, month, day: todayDay } = dateInZone(now, validZone(timeZone))
   const cells = buildMonthGrid(year, month)
-  const monthLabel = today.toLocaleDateString([], { month: 'long', year: 'numeric' })
+  const monthLabel = new Date(Date.UTC(year, month, 1)).toLocaleDateString([], {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC'
+  })
 
   return (
     <>
@@ -63,7 +86,7 @@ function MonthGridView({ accentColor }: { accentColor: string }): ReactElement {
           </div>
         ))}
         {cells.map((day, i) => {
-          const isToday = day === today.getDate()
+          const isToday = day === todayDay
           return (
             <div
               key={i}
@@ -95,8 +118,9 @@ function getCalendarApi(): {
   return window.display?.calendar ?? window.control?.calendar ?? null
 }
 
-function formatEventWhen(event: CalendarEvent): string {
+function formatEventWhen(event: CalendarEvent, timeZone?: string): string {
   const start = new Date(event.start)
+  // All-day events are midnight in the system zone (as parsed in the main process), so keep them in the system zone — converting could shift the date.
   if (event.allDay)
     return start.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
   return start.toLocaleString([], {
@@ -104,16 +128,19 @@ function formatEventWhen(event: CalendarEvent): string {
     month: 'short',
     day: 'numeric',
     hour: 'numeric',
-    minute: '2-digit'
+    minute: '2-digit',
+    timeZone
   })
 }
 
 function AgendaView({
   accentColor,
-  icsUrl
+  icsUrl,
+  timeZone
 }: {
   accentColor: string
   icsUrl?: string
+  timeZone?: string
 }): ReactElement {
   const [events, setEvents] = useState<CalendarEvent[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -187,7 +214,7 @@ function AgendaView({
               flexShrink: 0
             }}
           >
-            {formatEventWhen(event)}
+            {formatEventWhen(event, validZone(timeZone))}
           </span>
           <span
             style={{
@@ -217,11 +244,13 @@ function AgendaView({
 export function CalendarZone({
   accentColor,
   mode,
-  icsUrl
+  icsUrl,
+  timeZone
 }: {
   accentColor: string
   mode: 'grid' | 'agenda'
   icsUrl?: string
+  timeZone?: string
 }): ReactElement {
   return (
     <div
@@ -240,9 +269,9 @@ export function CalendarZone({
       }}
     >
       {mode === 'agenda' ? (
-        <AgendaView accentColor={accentColor} icsUrl={icsUrl} />
+        <AgendaView accentColor={accentColor} icsUrl={icsUrl} timeZone={timeZone} />
       ) : (
-        <MonthGridView accentColor={accentColor} />
+        <MonthGridView accentColor={accentColor} timeZone={timeZone} />
       )}
     </div>
   )

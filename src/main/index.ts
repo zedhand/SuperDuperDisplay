@@ -98,6 +98,7 @@ if (!gotLock) {
 
     const scheduler = new Scheduler(
       () => getConfig().schedule,
+      () => getConfig().scheduleTimeZone,
       (presetId) => broadcastConfig(ctx, setConfig({ activePresetId: presetId }))
     )
     scheduler.start()

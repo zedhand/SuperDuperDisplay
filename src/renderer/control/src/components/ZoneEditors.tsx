@@ -3,6 +3,7 @@ import { File, FolderOpen, Maximize2 } from 'lucide-react'
 import type { ZoneSource } from '@shared/types'
 import { METRICS } from '@shared/telemetryMetrics'
 import { mediaKindFromPath, toMediaUrl } from '@shared/media'
+import { TIME_ZONE_OPTIONS } from '@shared/timeZone'
 import { defaultMediaSource, FIT_MODES, STATS_STYLES, TYPE_SWITCH_OPTIONS } from './zoneDefaults'
 
 /**
@@ -329,17 +330,20 @@ export function ClockEditor({
   showDate,
   color,
   align,
+  timeZone,
   onChange
 }: {
   format: '12h' | '24h'
   showDate: boolean
   color: string
   align: 'left' | 'center' | 'right'
+  timeZone?: string
   onChange: (patch: {
     format?: '12h' | '24h'
     showDate?: boolean
     color?: string
     align?: 'left' | 'center' | 'right'
+    timeZone?: string
   }) => void
 }): ReactElement {
   return (
@@ -388,7 +392,33 @@ export function ClockEditor({
           className="h-7 w-10 rounded border border-[var(--border-1)] bg-transparent"
         />
       </div>
+      <TimeZoneSelect timeZone={timeZone} onChange={(tz) => onChange({ timeZone: tz })} />
     </div>
+  )
+}
+
+function TimeZoneSelect({
+  timeZone,
+  onChange
+}: {
+  timeZone?: string
+  onChange: (timeZone: string | undefined) => void
+}): ReactElement {
+  return (
+    <label className="flex items-center gap-2 text-xs text-[var(--text-3)]">
+      Time zone
+      <select
+        value={timeZone ?? ''}
+        onChange={(e) => onChange(e.target.value || undefined)}
+        className="rounded-md border border-[var(--border-1)] bg-[var(--surface-1)] px-2 py-1 text-xs text-[var(--text-2)]"
+      >
+        {TIME_ZONE_OPTIONS.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </label>
   )
 }
 
@@ -396,15 +426,23 @@ export function CalendarEditor({
   accentColor,
   mode,
   icsUrl,
+  timeZone,
   onChange
 }: {
   accentColor: string
   mode: 'grid' | 'agenda'
   icsUrl?: string
-  onChange: (patch: { accentColor?: string; mode?: 'grid' | 'agenda'; icsUrl?: string }) => void
+  timeZone?: string
+  onChange: (patch: {
+    accentColor?: string
+    mode?: 'grid' | 'agenda'
+    icsUrl?: string
+    timeZone?: string
+  }) => void
 }): ReactElement {
   return (
     <div className="flex flex-col gap-3">
+      <TimeZoneSelect timeZone={timeZone} onChange={(tz) => onChange({ timeZone: tz })} />
       <div className="flex gap-2">
         {(['grid', 'agenda'] as const).map((m) => (
           <button
@@ -1069,6 +1107,7 @@ export function ZoneSourceFields({
           showDate={source.showDate}
           color={source.color}
           align={source.align}
+          timeZone={source.timeZone}
           onChange={(patch) => onChange({ ...source, ...patch })}
         />
       )
@@ -1078,6 +1117,7 @@ export function ZoneSourceFields({
           accentColor={source.accentColor}
           mode={source.mode}
           icsUrl={source.icsUrl}
+          timeZone={source.timeZone}
           onChange={(patch) => onChange({ ...source, ...patch })}
         />
       )

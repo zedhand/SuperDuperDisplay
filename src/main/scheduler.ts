@@ -1,7 +1,10 @@
 import type { ScheduleEntry } from '@shared/types'
+import { validZone } from '@shared/timeZone'
+
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] // matches Date.getDay() / ScheduleEntry.days
 
 /**
- * Checks configured schedule entries against the current local time on a
+ * Checks configured schedule entries against the current time (in the configured schedule time zone, default system) on a
  * short interval, firing `onActivatePreset` at most once per entry per
  * *minute* (a `lastFiredKey` guard, keyed by entry id + the exact minute) —
  * the check interval and the minute boundary won't align perfectly, so
@@ -12,10 +15,16 @@ export class Scheduler {
   private timer: ReturnType<typeof setInterval> | null = null
   private lastFiredKey = new Map<string, string>()
   private getSchedule: () => ScheduleEntry[]
+  private getTimeZone: () => string | undefined
   private onActivatePreset: (presetId: string) => void
 
-  constructor(getSchedule: () => ScheduleEntry[], onActivatePreset: (presetId: string) => void) {
+  constructor(
+    getSchedule: () => ScheduleEntry[],
+    getTimeZone: () => string | undefined,
+    onActivatePreset: (presetId: string) => void
+  ) {
     this.getSchedule = getSchedule
+    this.getTimeZone = getTimeZone
     this.onActivatePreset = onActivatePreset
   }
 
@@ -31,12 +40,21 @@ export class Scheduler {
   }
 
   private check(): void {
-    const now = new Date()
-    const hh = String(now.getHours()).padStart(2, '0')
-    const mm = String(now.getMinutes()).padStart(2, '0')
-    const currentTime = `${hh}:${mm}`
-    const dayOfWeek = now.getDay()
-    const minuteKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()} ${currentTime}`
+    // Read the wall-clock time in the configured zone (system zone when unset), not via getHours() etc.
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: validZone(this.getTimeZone()),
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+      weekday: 'short'
+    }).formatToParts(new Date())
+    const get = (type: string): string => parts.find((p) => p.type === type)?.value ?? ''
+    const currentTime = `${get('hour')}:${get('minute')}`
+    const dayOfWeek = WEEKDAYS.indexOf(get('weekday'))
+    const minuteKey = `${get('year')}-${get('month')}-${get('day')} ${currentTime}`
 
     for (const entry of this.getSchedule()) {
       if (!entry.enabled) continue

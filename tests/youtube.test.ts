@@ -37,10 +37,17 @@ describe('extractYoutubeId', () => {
 })
 
 describe('buildYoutubeEmbedRelayUrl', () => {
-  it('points at the GitHub Pages relay with the video id and starting volume', () => {
-    const url = buildYoutubeEmbedRelayUrl('dQw4w9WgXcQ', 40)
-    expect(url).toBe(
-      'https://zedhand.github.io/superduperdisplay-yt-embed/?v=dQw4w9WgXcQ&volume=40'
-    )
+  it('points at the https relay page with the video id and initial volume', () => {
+    const url = new URL(buildYoutubeEmbedRelayUrl('dQw4w9WgXcQ', 40))
+    expect(url.origin).toBe('https://zedhand.github.io')
+    expect(url.pathname).toBe('/superduperdisplay-yt-embed/')
+    expect(url.searchParams.get('v')).toBe('dQw4w9WgXcQ')
+    expect(url.searchParams.get('volume')).toBe('40')
+  })
+
+  it('url-encodes the video id', () => {
+    const url = buildYoutubeEmbedRelayUrl('a&b=c', 0)
+    expect(url).toContain('v=a%26b%3Dc')
+    expect(new URL(url).searchParams.get('v')).toBe('a&b=c')
   })
 })
