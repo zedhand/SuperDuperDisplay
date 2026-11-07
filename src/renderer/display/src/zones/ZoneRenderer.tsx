@@ -108,11 +108,17 @@ export function ZoneRenderer({
           showDate={source.showDate}
           color={source.color}
           align={source.align}
+          timeZone={source.timeZone}
         />
       )
     case 'calendar':
       return (
-        <CalendarZone accentColor={source.accentColor} mode={source.mode} icsUrl={source.icsUrl} />
+        <CalendarZone
+          accentColor={source.accentColor}
+          mode={source.mode}
+          icsUrl={source.icsUrl}
+          timeZone={source.timeZone}
+        />
       )
     case 'weather':
       return (

@@ -55,8 +55,15 @@ export type ZoneSource =
       showDate: boolean
       color: string
       align: 'left' | 'center' | 'right'
+      timeZone?: string // IANA zone (e.g. 'America/Whitehorse'); unset = system zone
     }
-  | { type: 'calendar'; accentColor: string; mode: 'grid' | 'agenda'; icsUrl?: string } // 'grid': local month grid, no account integration. 'agenda': upcoming events from a subscribed .ics feed URL (Google/Outlook/Apple "secret address" export or any public .ics link) — no OAuth, no stored account credentials.
+  | {
+      type: 'calendar'
+      accentColor: string
+      mode: 'grid' | 'agenda'
+      icsUrl?: string
+      timeZone?: string // IANA zone; unset = system zone
+    } // 'grid': local month grid, no account integration. 'agenda': upcoming events from a subscribed .ics feed URL (Google/Outlook/Apple "secret address" export or any public .ics link) — no OAuth, no stored account credentials.
   | {
       type: 'weather'
       location: string // a place name (geocoded via Open-Meteo, no API key) or "lat,lon"
@@ -222,6 +229,7 @@ export interface AppConfig {
   colorProfiles: ColorProfile[]
   triggers: Trigger[]
   schedule: ScheduleEntry[]
+  scheduleTimeZone?: string // IANA zone the schedule's times are read in; unset = system zone
   recentMedia: string[] // MRU list of picked file paths, most recent first — for the "Recent" quick-pick instead of the OS file dialog every time
   telemetry: {
     source: 'auto' | 'lhm' | 'si'
