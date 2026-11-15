@@ -81,6 +81,30 @@ export const TYPE_SWITCH_OPTIONS: Array<{ label: string; make: () => ZoneSource 
     make: () => ({ type: 'nowplaying', color: '#ffffff', align: 'left' })
   },
   {
+    label: 'Timer',
+    make: () => ({
+      type: 'timer',
+      mode: 'session',
+      label: 'Session',
+      color: '#ffffff',
+      align: 'center'
+    })
+  },
+  {
+    label: 'Data',
+    make: () => ({
+      type: 'data',
+      url: '',
+      headers: '',
+      path: '',
+      label: '',
+      unit: '',
+      color: '#ffffff',
+      align: 'center',
+      intervalSec: 30
+    })
+  },
+  {
     label: 'Text',
     make: () => ({
       type: 'text',

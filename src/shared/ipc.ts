@@ -28,6 +28,7 @@ export const IpcChannel = {
 
   CalendarAgenda: 'calendar:agenda',
   WeatherGet: 'weather:get',
+  DataGet: 'data:get',
   RssGet: 'rss:get',
 
   TriggerState: 'trigger:state',
@@ -98,6 +99,10 @@ export interface IpcInvokeMap {
   [IpcChannel.CalendarAgenda]: {
     args: [icsUrl: string]
     result: { events: CalendarEvent[]; error?: string }
+  }
+  [IpcChannel.DataGet]: {
+    args: [url: string, headers: string, path: string]
+    result: { value: string | null; error?: string }
   }
   [IpcChannel.WeatherGet]: {
     args: [location: string, units: 'metric' | 'imperial']

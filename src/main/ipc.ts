@@ -18,6 +18,7 @@ import { generateRemoteToken, type RemoteServer } from './remote/server'
 import { getAgenda } from './calendar/ics'
 import { getWeather } from './weather/openMeteo'
 import { getFeed } from './rss/feed'
+import { getDataValue } from './data/jsonValue'
 
 export interface IpcContext {
   controlWin: BrowserWindow
@@ -145,6 +146,9 @@ export function registerIpcHandlers(ctx: IpcContext): void {
   ipcMain.handle(IpcChannel.CalendarAgenda, (_event, icsUrl: string) => getAgenda(icsUrl))
   ipcMain.handle(IpcChannel.WeatherGet, (_event, location: string, units: 'metric' | 'imperial') =>
     getWeather(location, units)
+  )
+  ipcMain.handle(IpcChannel.DataGet, (_event, url: string, headers: string, path: string) =>
+    getDataValue(url, headers, path)
   )
   ipcMain.handle(IpcChannel.RssGet, (_event, feedUrl: string) => getFeed(feedUrl))
 
