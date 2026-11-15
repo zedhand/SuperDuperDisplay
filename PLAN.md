@@ -390,9 +390,8 @@ deliberately respected, never killed).
   - Cached under `userData/mediaCache`, keyed by a hash of the source
     path+size+mtime so editing/replacing a source file invalidates its
     cache entry automatically; concurrent requests for the same file
-    share one ffmpeg run. No cache eviction yet — fine for a personal
-    media library, but unbounded over time; a known follow-up if it
-    ever matters (see Known housekeeping items).
+    share one ffmpeg run. (Update: the cache is now LRU-capped at `MAX_CACHE_BYTES` —
+    see `pruneCache()` in `transcode.ts`.)
   - Also widened the file-picker dialog filter (`ipc.ts`) and folder-
     playlist watcher (`folderSync.ts`, which had its own separately
     hand-maintained extension list — now imports the shared one instead
@@ -2054,3 +2053,13 @@ control-window changes:
 - Replaced the stale `buildYoutubeEmbedUrl` test (that function was
   removed when the relay landed) with one covering
   `buildYoutubeEmbedRelayUrl`.
+
+## Session 12 — audit + mouse lock + hardening
+
+- **Mouse lock** (`src/main/cursorGuard.ts`): hidden PowerShell helper polls the cursor and pushes it back out the side it entered from (not ClipCursor, so games can't undo it). Optional "keep windows off" moves other apps' windows off the panel (paused in Desktop mode). Toggles: Displays page, Ctrl+Alt+M, tray, phone remote.
+- **App rules** (`src/main/appWatcher.ts`): while a named process runs, lock the mouse and/or switch scene; undone on exit without clobbering manual changes.
+- **Display FX** (`src/shared/displayFx.ts`): software dim (optionally scheduled), pixel shift, and on-panel messages from the remote.
+- **Scene export/import** (`src/shared/sceneBundle.ts`), **net/disk metrics** (`telemetry/systeminfo.ts`).
+- **Security**: Electron 39 -> 45 (high advisories), guest web pages isolated in `persist:guest-pages` with no permissions (camera only for app windows; guest pages can no longer reach `media://`), remote WebSocket origin check. Note: existing Web-zone logins are reset once by the new partition.
+- **Not done / ideas**: telemetry sparklines, timer/stopwatch widget, Home Assistant/MQTT value zone, Discord/Twitch counters, DDC/CI hardware brightness, macOS/Linux parity for the mouse lock, code-signing the installer (needs a certificate).
+

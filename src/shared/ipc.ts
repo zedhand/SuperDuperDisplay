@@ -31,6 +31,7 @@ export const IpcChannel = {
   RssGet: 'rss:get',
 
   TriggerState: 'trigger:state',
+  DisplayNotify: 'display:notify',
 
   DisplaysList: 'displays:list',
   DisplaysChanged: 'displays:changed',
@@ -55,7 +56,9 @@ export const IpcChannel = {
   ZoneGetNaturalSize: 'zone:getNaturalSize',
 
   ConfigExport: 'config:export',
-  ConfigImport: 'config:import'
+  ConfigImport: 'config:import',
+  SceneExport: 'scene:export',
+  SceneImport: 'scene:import'
 } as const
 
 export type IpcChannelName = (typeof IpcChannel)[keyof typeof IpcChannel]
@@ -90,6 +93,8 @@ export interface IpcInvokeMap {
     args: []
     result: { config: AppConfig } | { error: string } | null
   }
+  [IpcChannel.SceneExport]: { args: [presetId: string]; result: { filePath: string } | null }
+  [IpcChannel.SceneImport]: { args: []; result: { error: string } | { ok: true } | null }
   [IpcChannel.CalendarAgenda]: {
     args: [icsUrl: string]
     result: { events: CalendarEvent[]; error?: string }
@@ -111,6 +116,7 @@ export interface IpcBroadcastMap {
   [IpcChannel.TelemetryTick]: Telemetry
   [IpcChannel.NowPlayingTick]: NowPlayingInfo
   [IpcChannel.TriggerState]: TriggerState
+  [IpcChannel.DisplayNotify]: { text: string; durationMs: number }
   [IpcChannel.DisplaysChanged]: DisplayInfo[]
   [IpcChannel.MediaFolderChanged]: { folder: string; items: MediaItem[] }
 }

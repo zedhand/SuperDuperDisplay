@@ -67,6 +67,7 @@ export class DisplayManager {
     } else if (!this.win.isVisible()) {
       this.win.showInactive()
     }
+    this.cursorGuard?.apply()
   }
 
   getLastResult(): DisplayTargetResult | null {

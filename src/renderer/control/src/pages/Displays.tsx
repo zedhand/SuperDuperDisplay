@@ -171,7 +171,87 @@ export function DisplaysPage(): ReactElement {
         </label>
         <p className="mt-2 text-xs text-[var(--text-4)]">
           Stops the cursor from wandering onto the panel (handy in games). Windows only; has no
-          effect on the simulated screen.
+          effect on the simulated screen. Toggle it anywhere with Ctrl+Alt+M (with hotkeys enabled),
+          the tray menu, or the phone remote; Settings → App rules turns it on automatically while a
+          game runs.
+        </p>
+        <label className="mt-3 flex w-fit cursor-pointer items-center gap-3 text-sm text-[var(--text-2)]">
+          <input
+            type="checkbox"
+            checked={display.keepWindowsOff}
+            onChange={(e) => patch({ display: { ...display, keepWindowsOff: e.target.checked } })}
+          />
+          Keep other windows off the target display
+        </label>
+        <p className="mt-2 text-xs text-[var(--text-4)]">
+          Moves any app window that lands on the panel back to your main monitor. Paused in Desktop
+          mode, where the panel is meant to behave like a normal monitor.
+        </p>
+      </section>
+
+      <section>
+        <h2 className="mb-3 text-lg font-semibold text-[var(--text-1)]">
+          Brightness &amp; burn-in
+        </h2>
+        <label className="flex items-center gap-3 text-sm text-[var(--text-2)]">
+          Dim
+          <input
+            type="range"
+            min={0}
+            max={85}
+            value={display.dim.level}
+            onChange={(e) =>
+              patch({
+                display: { ...display, dim: { ...display.dim, level: Number(e.target.value) } }
+              })
+            }
+          />
+          <span className="w-10 text-xs text-[var(--text-4)]">{display.dim.level}%</span>
+        </label>
+        <label className="mt-2 flex w-fit cursor-pointer items-center gap-3 text-sm text-[var(--text-2)]">
+          <input
+            type="checkbox"
+            checked={display.dim.scheduled}
+            onChange={(e) =>
+              patch({
+                display: { ...display, dim: { ...display.dim, scheduled: e.target.checked } }
+              })
+            }
+          />
+          Only between
+          <input
+            type="time"
+            value={display.dim.from}
+            onChange={(e) =>
+              patch({ display: { ...display, dim: { ...display.dim, from: e.target.value } } })
+            }
+            className="rounded border border-[var(--border-1)] bg-[var(--surface-1)] px-2 py-0.5 text-[var(--text-1)]"
+          />
+          and
+          <input
+            type="time"
+            value={display.dim.to}
+            onChange={(e) =>
+              patch({ display: { ...display, dim: { ...display.dim, to: e.target.value } } })
+            }
+            className="rounded border border-[var(--border-1)] bg-[var(--surface-1)] px-2 py-0.5 text-[var(--text-1)]"
+          />
+        </label>
+        <p className="mt-2 text-xs text-[var(--text-4)]">
+          A software dimmer over the picture (works on any panel). Handy at night, or to cut glare
+          from a case window.
+        </p>
+        <label className="mt-3 flex w-fit cursor-pointer items-center gap-3 text-sm text-[var(--text-2)]">
+          <input
+            type="checkbox"
+            checked={display.pixelShift}
+            onChange={(e) => patch({ display: { ...display, pixelShift: e.target.checked } })}
+          />
+          Pixel shift (burn-in protection)
+        </label>
+        <p className="mt-2 text-xs text-[var(--text-4)]">
+          Moves the picture by up to 2 px once a minute so static elements don&apos;t sit on the
+          same pixels. Mainly useful for OLED panels.
         </p>
       </section>
 

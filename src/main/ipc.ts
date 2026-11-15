@@ -8,6 +8,7 @@ import { getActiveMediaFolders } from '@shared/layout'
 import { IMAGE_EXTENSIONS, VIDEO_EXTENSIONS } from '@shared/media'
 import { getConfig, replaceConfig, setConfig } from './store'
 import { updateHotkeys } from './hotkeys'
+import { buildSceneBundle, planSceneImport } from '@shared/sceneBundle'
 import type { DisplayManager } from './displayManager'
 import type { FolderSyncManager } from './media/folderSync'
 import type { TelemetryService } from './telemetry'
@@ -41,8 +42,16 @@ export function broadcastConfig(ctx: IpcContext, config: AppConfig): void {
     (mode) => {
       ctx.displayManager.applyMode(mode)
       broadcastConfig(ctx, setConfig({ display: { ...getConfig().display, mode } }))
-    }
+    },
+    () => setMouseLock(ctx, !getConfig().display.lockMouse)
   )
+}
+
+/** Single entry point for turning the mouse lock on/off from anywhere (hotkey, tray, remote, app rules). */
+export function setMouseLock(ctx: IpcContext, on: boolean): void {
+  const next = setConfig({ display: { ...getConfig().display, lockMouse: on } })
+  ctx.displayManager.retarget()
+  broadcastConfig(ctx, next)
 }
 
 export function broadcastDisplays(ctx: IpcContext): void {
@@ -150,6 +159,36 @@ export function registerIpcHandlers(ctx: IpcContext): void {
     // be treated like a password if shared.
     await writeFile(result.filePath, JSON.stringify(getConfig(), null, 2), 'utf8')
     return { filePath: result.filePath }
+  })
+
+  ipcMain.handle(IpcChannel.SceneExport, async (_event, presetId: string) => {
+    const bundle = buildSceneBundle(getConfig(), presetId)
+    if (!bundle) return null
+    const safeName = bundle.preset.name.replace(/[^\w .-]+/g, '_').trim() || 'scene'
+    const result = await dialog.showSaveDialog(ctx.controlWin, {
+      defaultPath: `${safeName}.sddscene.json`,
+      filters: [{ name: 'SuperDuperDisplay scene', extensions: ['json'] }]
+    })
+    if (result.canceled || !result.filePath) return null
+    await writeFile(result.filePath, JSON.stringify(bundle, null, 2), 'utf8')
+    return { filePath: result.filePath }
+  })
+
+  ipcMain.handle(IpcChannel.SceneImport, async () => {
+    const result = await dialog.showOpenDialog(ctx.controlWin, {
+      properties: ['openFile'],
+      filters: [{ name: 'SuperDuperDisplay scene', extensions: ['json'] }]
+    })
+    if (result.canceled || result.filePaths.length === 0) return null
+    try {
+      const raw = JSON.parse(await readFile(result.filePaths[0], 'utf8'))
+      const plan = planSceneImport(getConfig(), raw)
+      if ('error' in plan) return { error: plan.error }
+      broadcastConfig(ctx, setConfig(plan.patch))
+      return { ok: true as const }
+    } catch (err) {
+      return { error: `Couldn't read that file: ${(err as Error).message}` }
+    }
   })
 
   ipcMain.handle(IpcChannel.ConfigImport, async () => {

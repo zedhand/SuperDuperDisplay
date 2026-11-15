@@ -10,7 +10,8 @@ import {
   broadcastConfig,
   broadcastDisplays,
   captureDisplayWindow,
-  registerIpcHandlers
+  registerIpcHandlers,
+  setMouseLock
 } from './ipc'
 import { registerMediaProtocolHandler, registerMediaProtocolScheme } from './protocol'
 import { FolderSyncManager } from './media/folderSync'
@@ -19,6 +20,7 @@ import { NowPlayingService } from './media/nowPlaying'
 import { TriggerEngine } from './triggerEngine'
 import { Scheduler } from './scheduler'
 import { CursorGuard } from './cursorGuard'
+import { AppWatcher } from './appWatcher'
 import { PowerManager } from './power'
 import { TrayManager } from './tray'
 import { RtspManager } from './camera/rtsp'
@@ -115,6 +117,7 @@ if (!gotLock) {
         displayManager.applyMode(mode)
         broadcastConfig(ctx, next)
       },
+      (on) => setMouseLock(ctx, on),
       () => {
         isQuitting = true
         app.quit()
@@ -131,7 +134,9 @@ if (!gotLock) {
         const next = setConfig({ display: { ...getConfig().display, mode } })
         displayManager.applyMode(mode)
         broadcastConfig(ctx, next)
-      }
+      },
+      (on) => setMouseLock(ctx, on),
+      (text) => displayWin.webContents.send(IpcChannel.DisplayNotify, { text, durationMs: 8000 })
     )
     remoteServer.applyConfig(config.remote).catch((err: Error) => {
       console.error('[remote] failed to start on launch:', err.message)
@@ -155,6 +160,12 @@ if (!gotLock) {
       broadcastConfig(ctx, next)
     })
     powerManager.startIdleWatch()
+
+    const appWatcher = new AppWatcher(getConfig, {
+      setMouseLock: (on) => setMouseLock(ctx, on),
+      setPreset: (presetId) => broadcastConfig(ctx, setConfig({ activePresetId: presetId }))
+    })
+    appWatcher.start()
 
     startAutoUpdates()
 
@@ -205,6 +216,7 @@ if (!gotLock) {
       remoteServer.stop()
       unregisterHotkeys()
       scheduler.stop()
+      appWatcher.stop()
       cursorGuard.stop()
     })
   })

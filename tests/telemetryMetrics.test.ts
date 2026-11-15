@@ -14,6 +14,9 @@ const baseTelemetry: Telemetry = {
   vramTotalMB: 8192,
   ramUsedMB: 8192,
   ramTotalMB: 32768,
+  netDownMbps: 120,
+  netUpMbps: 20,
+  diskUsedPct: 55,
   source: 'mixed'
 }
 

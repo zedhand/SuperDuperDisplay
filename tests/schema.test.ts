@@ -60,3 +60,20 @@ describe('appConfigSchema', () => {
     })
   })
 })
+
+describe('config migration defaults', () => {
+  it('fills in newer display/appRules fields for configs saved before they existed', async () => {
+    const { appConfigSchema, defaultConfig } = await import('../src/shared/schema')
+    const old = JSON.parse(JSON.stringify(defaultConfig))
+    delete old.display.lockMouse
+    delete old.display.keepWindowsOff
+    delete old.display.dim
+    delete old.display.pixelShift
+    delete old.appRules
+    const parsed = appConfigSchema.parse(old)
+    expect(parsed.display.lockMouse).toBe(false)
+    expect(parsed.display.dim.level).toBe(0)
+    expect(parsed.display.pixelShift).toBe(false)
+    expect(parsed.appRules).toEqual([])
+  })
+})

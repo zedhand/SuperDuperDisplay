@@ -19,6 +19,16 @@ function safeTokenEquals(provided: string, expected: string): boolean {
   return timingSafeEqual(a, b)
 }
 
+/** True when there's no Origin (non-browser client, still token-gated) or its host matches the Host we were reached on. */
+export function isSameOrigin(origin: string | undefined, host: string | undefined): boolean {
+  if (!origin) return true
+  try {
+    return new URL(origin).host === host
+  } catch {
+    return false
+  }
+}
+
 // VPN/virtual-switch adapters commonly show up as a non-internal IPv4 too
 // (Tailscale, Hyper-V's default switch, etc), but a phone on the same Wi-Fi
 // almost never shares that network — only the real uplink is reachable from
@@ -68,7 +78,8 @@ function buildStateMessage(config: AppConfig): string {
     type: 'state',
     presets: config.presets.map((p) => ({ id: p.id, name: p.name })),
     activePresetId: config.activePresetId,
-    mode: config.display.mode
+    mode: config.display.mode,
+    mouseLock: config.display.lockMouse
   })
 }
 
@@ -99,6 +110,13 @@ function renderRemotePage(): string {
   <div class="grid" id="presets"></div>
   <h2>Mode</h2>
   <div class="grid" id="modes"></div>
+  <h2>Mouse</h2>
+  <div class="grid" id="mouse"></div>
+  <h2>Message to panel</h2>
+  <div class="grid">
+    <input id="msg" maxlength="140" placeholder="Type a message…" style="padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#fff;font-size:0.95rem" />
+    <button id="send">Show on panel</button>
+  </div>
   <div id="status">Connecting…</div>
 <script>
 (function () {
@@ -107,8 +125,14 @@ function renderRemotePage(): string {
   var ws = new WebSocket(proto + '//' + location.host + '/ws?token=' + encodeURIComponent(token));
   var presetsEl = document.getElementById('presets');
   var modesEl = document.getElementById('modes');
+  var mouseEl = document.getElementById('mouse');
   var statusEl = document.getElementById('status');
   var MODES = ['live', 'black', 'hidden'];
+
+  document.getElementById('send').onclick = function () {
+    var el = document.getElementById('msg');
+    if (el.value.trim()) { ws.send(JSON.stringify({ type: 'notify', text: el.value })); el.value = ''; }
+  };
 
   ws.onopen = function () { statusEl.textContent = 'Connected'; };
   ws.onclose = function () { statusEl.textContent = 'Disconnected'; };
@@ -137,6 +161,13 @@ function renderRemotePage(): string {
       btn.onclick = function () { ws.send(JSON.stringify({ type: 'setMode', mode: mode })); };
       modesEl.appendChild(btn);
     });
+
+    mouseEl.innerHTML = '';
+    var lock = document.createElement('button');
+    lock.textContent = state.mouseLock ? 'Mouse locked out of panel: ON' : 'Mouse locked out of panel: OFF';
+    if (state.mouseLock) lock.className = 'active';
+    lock.onclick = function () { ws.send(JSON.stringify({ type: 'setMouseLock', on: !state.mouseLock })); };
+    mouseEl.appendChild(lock);
   }
 })();
 </script>
@@ -157,15 +188,21 @@ export class RemoteServer {
   private getConfig: () => AppConfig
   private onSetPreset: (presetId: string) => void
   private onSetMode: (mode: DisplayMode) => void
+  private onSetMouseLock: (on: boolean) => void
+  private onNotify: (text: string) => void
 
   constructor(
     getConfig: () => AppConfig,
     onSetPreset: (presetId: string) => void,
-    onSetMode: (mode: DisplayMode) => void
+    onSetMode: (mode: DisplayMode) => void,
+    onSetMouseLock: (on: boolean) => void,
+    onNotify: (text: string) => void
   ) {
     this.getConfig = getConfig
     this.onSetPreset = onSetPreset
     this.onSetMode = onSetMode
+    this.onSetMouseLock = onSetMouseLock
+    this.onNotify = onNotify
   }
 
   get running(): boolean {
@@ -203,11 +240,20 @@ export class RemoteServer {
           res.status(403).type('text/plain').send('Forbidden: missing or incorrect token')
           return
         }
-        res.type('html').send(renderRemotePage())
+        res
+          .set({ 'Referrer-Policy': 'no-referrer', 'Cache-Control': 'no-store' })
+          .type('html')
+          .send(renderRemotePage())
       })
 
       const httpServer = createServer(app)
-      const wss = new WebSocketServer({ server: httpServer, path: '/ws' })
+      const wss = new WebSocketServer({
+        server: httpServer,
+        path: '/ws',
+        // Browsers always send Origin on WebSocket handshakes. A page on any other
+        // site (cross-site WebSocket hijacking) will have a different host than ours.
+        verifyClient: ({ req }) => isSameOrigin(req.headers.origin, req.headers.host)
+      })
 
       wss.on('connection', (ws, req) => {
         const url = new URL(req.url ?? '', 'http://localhost')
@@ -238,6 +284,11 @@ export class RemoteServer {
             MODES.includes(msg.mode as DisplayMode)
           ) {
             this.onSetMode(msg.mode as DisplayMode)
+          } else if (type === 'setMouseLock' && 'on' in msg && typeof msg.on === 'boolean') {
+            this.onSetMouseLock(msg.on)
+          } else if (type === 'notify' && 'text' in msg && typeof msg.text === 'string') {
+            const text = msg.text.trim().slice(0, 140)
+            if (text) this.onNotify(text)
           }
         })
 

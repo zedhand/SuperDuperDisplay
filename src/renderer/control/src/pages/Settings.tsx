@@ -1,5 +1,5 @@
 import { useState, type ReactElement, type ReactNode } from 'react'
-import type { AppConfig, ScheduleEntry } from '@shared/types'
+import type { AppConfig, AppRule, ScheduleEntry } from '@shared/types'
 import { TIME_ZONE_OPTIONS } from '@shared/timeZone'
 import { useConfigStore } from '../store/useConfigStore'
 
@@ -149,7 +149,7 @@ export function SettingsPage(): ReactElement {
         {config.app.hotkeysEnabled && (
           <p className="pl-7 text-xs text-[var(--text-5)]">
             Ctrl+Alt+1–9 activates the scene in that position · Ctrl+Alt+L live · Ctrl+Alt+B black ·
-            Ctrl+Alt+D desktop
+            Ctrl+Alt+D desktop · Ctrl+Alt+M toggle mouse lock
           </p>
         )}
       </Section>
@@ -176,6 +176,8 @@ export function SettingsPage(): ReactElement {
       </Section>
 
       <ScheduleSection />
+
+      <AppRulesSection />
 
       <Section title="Telemetry">
         <label className="flex flex-col gap-1 py-1.5 text-sm text-[var(--text-2)]">
@@ -272,6 +274,91 @@ export function SettingsPage(): ReactElement {
 }
 
 const DAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+
+function AppRulesSection(): ReactElement {
+  const config = useConfigStore((s) => s.config)
+  const patch = useConfigStore((s) => s.patch)
+  if (!config) return <></>
+
+  const rules = config.appRules
+
+  function update(next: AppRule[]): void {
+    patch({ appRules: next })
+  }
+  function patchRule(id: string, fields: Partial<AppRule>): void {
+    update(rules.map((r) => (r.id === id ? { ...r, ...fields } : r)))
+  }
+
+  return (
+    <Section title="App rules (games)">
+      <p className="mb-3 text-xs text-[var(--text-5)]">
+        While a program is running, lock the mouse out of the panel and/or switch scene. Both are
+        undone when it closes. Use the process name from Task Manager, e.g. eldenring.exe.
+      </p>
+      <div className="flex flex-col gap-2">
+        {rules.map((rule) => (
+          <div
+            key={rule.id}
+            className="flex flex-wrap items-center gap-3 rounded-md border border-[var(--border-1)] p-2"
+          >
+            <input
+              type="checkbox"
+              checked={rule.enabled}
+              onChange={(e) => patchRule(rule.id, { enabled: e.target.checked })}
+              title="Enabled"
+            />
+            <input
+              value={rule.exe}
+              placeholder="game.exe"
+              onChange={(e) => patchRule(rule.id, { exe: e.target.value })}
+              className="w-44 rounded border border-[var(--border-1)] bg-[var(--surface-1)] px-2 py-1 text-sm text-[var(--text-1)]"
+            />
+            <label className="flex items-center gap-1.5 text-xs text-[var(--text-3)]">
+              <input
+                type="checkbox"
+                checked={rule.lockMouse}
+                onChange={(e) => patchRule(rule.id, { lockMouse: e.target.checked })}
+              />
+              Lock mouse
+            </label>
+            <label className="flex items-center gap-1.5 text-xs text-[var(--text-3)]">
+              Scene
+              <select
+                value={rule.presetId ?? ''}
+                onChange={(e) => patchRule(rule.id, { presetId: e.target.value || null })}
+                className="rounded border border-[var(--border-1)] bg-[var(--surface-1)] px-2 py-1 text-sm text-[var(--text-1)]"
+              >
+                <option value="">(leave as is)</option>
+                {config.presets.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              onClick={() => update(rules.filter((r) => r.id !== rule.id))}
+              className="ml-auto text-xs text-[var(--text-4)] hover:text-[var(--text-1)]"
+            >
+              Remove
+            </button>
+          </div>
+        ))}
+        <button
+          onClick={() =>
+            update([
+              ...rules,
+              { id: crypto.randomUUID(), exe: '', lockMouse: true, presetId: null, enabled: true }
+            ])
+          }
+          className="w-fit rounded-md border border-[var(--border-1)] bg-[var(--surface-1)] px-3 py-1.5 text-xs text-[var(--text-2)] hover:border-[var(--border-2)]"
+        >
+          + Add app rule
+        </button>
+      </div>
+    </Section>
+  )
+}
 
 function ScheduleSection(): ReactElement {
   const config = useConfigStore((s) => s.config)

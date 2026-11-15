@@ -3,6 +3,7 @@ import type { AppConfig, ColorProfile, ResolvedZone } from '@shared/types'
 import { resolveZones, rotatedContentSize, rotationCssTransform } from '@shared/layout'
 import { buildColorFilterCss, gammaExponent, GAMMA_FILTER_ID } from '@shared/colorProfile'
 import { ZoneRenderer } from './zones/ZoneRenderer'
+import { dimOpacity, pixelShiftOffset } from '@shared/displayFx'
 import { AlertOverlay } from './fx/AlertOverlay'
 
 const NEUTRAL_COLOR_PROFILE: ColorProfile = {
@@ -115,8 +116,20 @@ function resolveScene(
   }
 }
 
+/** Re-renders every `ms` so time-based effects (scheduled dim, pixel shift) update without a config change. */
+function useNow(ms: number): Date {
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), ms)
+    return () => clearInterval(id)
+  }, [ms])
+  return now
+}
+
 export function Stage(): ReactElement | null {
   const [config, setConfig] = useState<AppConfig | null>(null)
+  const [banner, setBanner] = useState<string | null>(null)
+  const now = useNow(15_000)
   const layers = useTransitionLayers(config?.activePresetId, config?.display.transitionMs ?? 0)
 
   useEffect(() => {
@@ -127,6 +140,19 @@ export function Stage(): ReactElement | null {
     // does for window.control.config.
     window.display.getConfig().then(setConfig)
     return window.display.onConfigChanged(setConfig)
+  }, [])
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const off = window.display.onNotify(({ text, durationMs }) => {
+      setBanner(text)
+      clearTimeout(timer)
+      timer = setTimeout(() => setBanner(null), durationMs)
+    })
+    return () => {
+      off()
+      clearTimeout(timer)
+    }
   }, [])
 
   if (!config) return null
@@ -140,6 +166,8 @@ export function Stage(): ReactElement | null {
   // two presets mid-crossfade is a minor visual nuance, not a correctness
   // issue, and it avoids per-layer filter-id bookkeeping for a transition
   // that's over within a second either way.
+  const dim = dimOpacity(config.display.dim, now)
+  const shift = config.display.pixelShift ? pixelShiftOffset(now) : { x: 0, y: 0 }
   const activeColorProfile =
     resolveScene(config, config.activePresetId)?.colorProfile ?? NEUTRAL_COLOR_PROFILE
 
@@ -178,7 +206,8 @@ export function Stage(): ReactElement | null {
           left: '50%',
           width: content.width,
           height: content.height,
-          transform: `translate(-50%, -50%) ${transform}`.trim(),
+          transform:
+            `translate(calc(-50% + ${shift.x}px), calc(-50% + ${shift.y}px)) ${transform}`.trim(),
           background: '#000',
           overflow: 'hidden'
         }}
@@ -217,6 +246,37 @@ export function Stage(): ReactElement | null {
             )
           })}
         {config.display.mode === 'live' && <AlertOverlay />}
+        {banner && config.display.mode !== 'black' && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(0,0,0,0.78)',
+              color: '#fff',
+              fontFamily: 'system-ui, sans-serif',
+              fontSize: 'min(12vh, 6vw)',
+              fontWeight: 600,
+              textAlign: 'center',
+              padding: '0 4%'
+            }}
+          >
+            {banner}
+          </div>
+        )}
+        {dim > 0 && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: '#000',
+              opacity: dim,
+              pointerEvents: 'none'
+            }}
+          />
+        )}
       </div>
     </>
   )
