@@ -13,7 +13,7 @@ const displayMatchSchema = z.object({
   y: z.number().optional()
 })
 
-const colorProfileSchema = z.object({
+export const colorProfileSchema = z.object({
   id: z.string(),
   name: z.string(),
   brightness: z.number().min(0).max(2),
@@ -139,14 +139,14 @@ const layerItemSchema: z.ZodType<LayerItem> = z.lazy(() =>
   })
 )
 
-const layoutSchema = z.object({
+export const layoutSchema = z.object({
   id: z.string(),
   name: z.string(),
   split: z.enum(['single', 'h', 'v', 'grid']),
   sizes: z.array(z.number().positive())
 })
 
-const presetSchema = z.object({
+export const presetSchema = z.object({
   id: z.string(),
   name: z.string(),
   layoutId: z.string(),

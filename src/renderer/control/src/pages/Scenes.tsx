@@ -175,6 +175,22 @@ export function ScenesPage(): ReactElement {
             <Plus size={14} />
             New
           </button>
+          <button
+            onClick={() => window.control.scene.export(config.activePresetId)}
+            className="rounded-md border border-[var(--border-1)] bg-[var(--surface-1)] px-3 py-2 text-sm text-[var(--text-3)] hover:border-[var(--border-2)]"
+            title="Save the selected scene to a file you can share"
+          >
+            Export scene
+          </button>
+          <button
+            onClick={async () => {
+              const r = await window.control.scene.import()
+              if (r && 'error' in r) window.alert(r.error)
+            }}
+            className="rounded-md border border-[var(--border-1)] bg-[var(--surface-1)] px-3 py-2 text-sm text-[var(--text-3)] hover:border-[var(--border-2)]"
+          >
+            Import scene
+          </button>
         </div>
       </section>
 

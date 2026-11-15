@@ -27,6 +27,12 @@ const controlApi = {
     import: (): Promise<{ config: AppConfig } | { error: string } | null> =>
       ipcRenderer.invoke(IpcChannel.ConfigImport)
   },
+  scene: {
+    export: (presetId: string): Promise<{ filePath: string } | null> =>
+      ipcRenderer.invoke(IpcChannel.SceneExport, presetId),
+    import: (): Promise<{ error: string } | { ok: true } | null> =>
+      ipcRenderer.invoke(IpcChannel.SceneImport)
+  },
   displays: {
     list: (): Promise<Array<DisplayInfo & { isTarget: boolean }>> =>
       ipcRenderer.invoke(IpcChannel.DisplaysList),
