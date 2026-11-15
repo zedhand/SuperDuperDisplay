@@ -31,6 +31,7 @@ export const IpcChannel = {
   RssGet: 'rss:get',
 
   TriggerState: 'trigger:state',
+  DisplayNotify: 'display:notify',
 
   DisplaysList: 'displays:list',
   DisplaysChanged: 'displays:changed',
@@ -111,6 +112,7 @@ export interface IpcBroadcastMap {
   [IpcChannel.TelemetryTick]: Telemetry
   [IpcChannel.NowPlayingTick]: NowPlayingInfo
   [IpcChannel.TriggerState]: TriggerState
+  [IpcChannel.DisplayNotify]: { text: string; durationMs: number }
   [IpcChannel.DisplaysChanged]: DisplayInfo[]
   [IpcChannel.MediaFolderChanged]: { folder: string; items: MediaItem[] }
 }

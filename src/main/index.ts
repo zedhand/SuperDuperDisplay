@@ -135,7 +135,8 @@ if (!gotLock) {
         displayManager.applyMode(mode)
         broadcastConfig(ctx, next)
       },
-      (on) => setMouseLock(ctx, on)
+      (on) => setMouseLock(ctx, on),
+      (text) => displayWin.webContents.send(IpcChannel.DisplayNotify, { text, durationMs: 8000 })
     )
     remoteServer.applyConfig(config.remote).catch((err: Error) => {
       console.error('[remote] failed to start on launch:', err.message)

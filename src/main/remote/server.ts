@@ -112,6 +112,11 @@ function renderRemotePage(): string {
   <div class="grid" id="modes"></div>
   <h2>Mouse</h2>
   <div class="grid" id="mouse"></div>
+  <h2>Message to panel</h2>
+  <div class="grid">
+    <input id="msg" maxlength="140" placeholder="Type a message…" style="padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#fff;font-size:0.95rem" />
+    <button id="send">Show on panel</button>
+  </div>
   <div id="status">Connecting…</div>
 <script>
 (function () {
@@ -123,6 +128,11 @@ function renderRemotePage(): string {
   var mouseEl = document.getElementById('mouse');
   var statusEl = document.getElementById('status');
   var MODES = ['live', 'black', 'hidden'];
+
+  document.getElementById('send').onclick = function () {
+    var el = document.getElementById('msg');
+    if (el.value.trim()) { ws.send(JSON.stringify({ type: 'notify', text: el.value })); el.value = ''; }
+  };
 
   ws.onopen = function () { statusEl.textContent = 'Connected'; };
   ws.onclose = function () { statusEl.textContent = 'Disconnected'; };
@@ -179,17 +189,20 @@ export class RemoteServer {
   private onSetPreset: (presetId: string) => void
   private onSetMode: (mode: DisplayMode) => void
   private onSetMouseLock: (on: boolean) => void
+  private onNotify: (text: string) => void
 
   constructor(
     getConfig: () => AppConfig,
     onSetPreset: (presetId: string) => void,
     onSetMode: (mode: DisplayMode) => void,
-    onSetMouseLock: (on: boolean) => void
+    onSetMouseLock: (on: boolean) => void,
+    onNotify: (text: string) => void
   ) {
     this.getConfig = getConfig
     this.onSetPreset = onSetPreset
     this.onSetMode = onSetMode
     this.onSetMouseLock = onSetMouseLock
+    this.onNotify = onNotify
   }
 
   get running(): boolean {
@@ -273,6 +286,9 @@ export class RemoteServer {
             this.onSetMode(msg.mode as DisplayMode)
           } else if (type === 'setMouseLock' && 'on' in msg && typeof msg.on === 'boolean') {
             this.onSetMouseLock(msg.on)
+          } else if (type === 'notify' && 'text' in msg && typeof msg.text === 'string') {
+            const text = msg.text.trim().slice(0, 140)
+            if (text) this.onNotify(text)
           }
         })
 

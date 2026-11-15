@@ -37,6 +37,14 @@ const displayApi = {
     ipcRenderer.on(IpcChannel.TriggerState, listener)
     return () => ipcRenderer.removeListener(IpcChannel.TriggerState, listener)
   },
+  onNotify: (cb: (msg: { text: string; durationMs: number }) => void): (() => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      msg: { text: string; durationMs: number }
+    ): void => cb(msg)
+    ipcRenderer.on(IpcChannel.DisplayNotify, listener)
+    return () => ipcRenderer.removeListener(IpcChannel.DisplayNotify, listener)
+  },
   rtsp: {
     start: (url: string): Promise<{ mjpegUrl: string }> =>
       ipcRenderer.invoke(IpcChannel.RtspStart, url),

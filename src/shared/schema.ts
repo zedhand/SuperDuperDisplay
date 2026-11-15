@@ -188,7 +188,16 @@ export const appConfigSchema: z.ZodType<AppConfig> = z.object({
     mode: displayModeSchema,
     transitionMs: z.number().nonnegative().default(0),
     lockMouse: z.boolean().default(false),
-    keepWindowsOff: z.boolean().default(false)
+    keepWindowsOff: z.boolean().default(false),
+    dim: z
+      .object({
+        level: z.number().min(0).max(100),
+        scheduled: z.boolean(),
+        from: z.string(),
+        to: z.string()
+      })
+      .default({ level: 0, scheduled: false, from: '22:00', to: '07:00' }),
+    pixelShift: z.boolean().default(false)
   }),
   controlWindow: z.object({
     bounds: z
@@ -259,7 +268,9 @@ export const defaultConfig: AppConfig = {
     mode: 'live',
     transitionMs: 0,
     lockMouse: false,
-    keepWindowsOff: false
+    keepWindowsOff: false,
+    dim: { level: 0, scheduled: false, from: '22:00', to: '07:00' },
+    pixelShift: false
   },
   controlWindow: {
     bounds: null

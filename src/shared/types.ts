@@ -229,6 +229,8 @@ export interface AppConfig {
     mode: DisplayMode
     transitionMs: number // crossfade duration when switching presets; 0 = instant cut (default)
     lockMouse: boolean // keep the mouse cursor off the target display (Windows only)
+    dim: { level: number; scheduled: boolean; from: string; to: string } // black overlay, level in percent; if `scheduled`, only between from..to (HH:MM, local, may wrap midnight)
+    pixelShift: boolean // nudge the whole picture a couple of pixels every minute (burn-in protection)
     keepWindowsOff: boolean // move app windows that land on the target display back to the main one, except in Desktop mode (Windows only)
   }
   controlWindow: {
