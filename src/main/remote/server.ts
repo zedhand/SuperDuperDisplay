@@ -19,6 +19,16 @@ function safeTokenEquals(provided: string, expected: string): boolean {
   return timingSafeEqual(a, b)
 }
 
+/** True when there's no Origin (non-browser client, still token-gated) or its host matches the Host we were reached on. */
+export function isSameOrigin(origin: string | undefined, host: string | undefined): boolean {
+  if (!origin) return true
+  try {
+    return new URL(origin).host === host
+  } catch {
+    return false
+  }
+}
+
 // VPN/virtual-switch adapters commonly show up as a non-internal IPv4 too
 // (Tailscale, Hyper-V's default switch, etc), but a phone on the same Wi-Fi
 // almost never shares that network — only the real uplink is reachable from
@@ -203,11 +213,20 @@ export class RemoteServer {
           res.status(403).type('text/plain').send('Forbidden: missing or incorrect token')
           return
         }
-        res.type('html').send(renderRemotePage())
+        res
+          .set({ 'Referrer-Policy': 'no-referrer', 'Cache-Control': 'no-store' })
+          .type('html')
+          .send(renderRemotePage())
       })
 
       const httpServer = createServer(app)
-      const wss = new WebSocketServer({ server: httpServer, path: '/ws' })
+      const wss = new WebSocketServer({
+        server: httpServer,
+        path: '/ws',
+        // Browsers always send Origin on WebSocket handshakes. A page on any other
+        // site (cross-site WebSocket hijacking) will have a different host than ours.
+        verifyClient: ({ req }) => isSameOrigin(req.headers.origin, req.headers.host)
+      })
 
       wss.on('connection', (ws, req) => {
         const url = new URL(req.url ?? '', 'http://localhost')
