@@ -1,7 +1,7 @@
-import type { ZoneSource } from '@shared/types'
+import type { StatsStyle, ZoneSource } from '@shared/types'
 
 export const FIT_MODES: Array<'cover' | 'contain' | 'stretch'> = ['cover', 'contain', 'stretch']
-export const STATS_STYLES: Array<'bars' | 'gauges' | 'compact'> = ['bars', 'gauges', 'compact']
+export const STATS_STYLES: StatsStyle[] = ['bars', 'gauges', 'compact', 'graph']
 
 export function defaultMediaSource(source: { path?: string; folder?: string }): ZoneSource {
   return {

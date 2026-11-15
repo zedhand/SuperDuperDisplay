@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactElement } from 'react'
-import type { Telemetry } from '@shared/types'
+import type { StatsStyle, Telemetry } from '@shared/types'
 import { getMetricDef } from '@shared/telemetryMetrics'
+import { HISTORY_LENGTH, pushSample, sparklinePath } from '@shared/sparkline'
 
 function formatValue(value: number | null, unit: string): string {
   if (value == null) return '—'
@@ -234,11 +235,74 @@ function CompactRow({
   )
 }
 
+function GraphRow({
+  telemetry,
+  metricKey,
+  history
+}: {
+  telemetry: Telemetry | null
+  metricKey: string
+  history: Array<number | null>
+}): ReactElement | null {
+  const def = getMetricDef(metricKey)
+  if (!def) return null
+  const value = telemetry ? def.getValue(telemetry) : null
+  // Scale to the metric's nominal max, but grow if a reading exceeds it so the line never clips (e.g. a gigabit-plus network burst).
+  const peak = history.reduce<number>((m, v) => (v != null && v > m ? v : m), 0)
+  const { line, area } = sparklinePath(history, Math.max(def.max, peak), 100, 40)
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        gap: 'clamp(2px, 3cqh, 10px)',
+        minWidth: 0,
+        minHeight: 0,
+        overflow: 'hidden',
+        containerType: 'size'
+      }}
+    >
+      <div
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}
+      >
+        <span style={{ ...COMPACT_LABEL_STYLE, minWidth: 0 }}>{def.label}</span>
+        <span style={{ ...ellipsisStyle(30, 16, 14, 64), color: '#fff', fontWeight: 700 }}>
+          {formatValue(value, def.unit)}
+        </span>
+      </div>
+      <svg
+        viewBox="0 0 100 40"
+        preserveAspectRatio="none"
+        style={{
+          width: '100%',
+          flex: 1,
+          minHeight: 12,
+          borderRadius: 6,
+          background: 'rgba(255,255,255,0.05)'
+        }}
+      >
+        <path d={area} fill="rgba(232,121,249,0.22)" />
+        <path
+          d={line}
+          fill="none"
+          stroke="#e879f9"
+          strokeWidth={1.5}
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+    </div>
+  )
+}
+
 /** How much wider than tall one cell naturally wants to be, per style — used to pick a grid that fits the zone's actual shape. */
-const CELL_ASPECT: Record<'bars' | 'gauges' | 'compact', number> = {
+const CELL_ASPECT: Record<StatsStyle, number> = {
   bars: 1.8, // stacked label/value/bar — only needs to fit one string's width at a time
   gauges: 0.85,
-  compact: 2.4 // stacked label/value, no bar
+  compact: 2.4, // stacked label/value, no bar
+  graph: 2.2 // label + value on one line over a wide history strip
 }
 
 export function StatsZone({
@@ -246,12 +310,28 @@ export function StatsZone({
   style
 }: {
   widgets: string[]
-  style: 'bars' | 'gauges' | 'compact'
+  style: StatsStyle
 }): ReactElement {
   const [telemetry, setTelemetry] = useState<Telemetry | null>(null)
+  const [histories, setHistories] = useState<Record<string, Array<number | null>>>({})
   const [sizeRef, { width, height }] = useElementSize<HTMLDivElement>()
 
-  useEffect(() => window.display.onTelemetry(setTelemetry), [])
+  // Only the graph style reads histories, but recording is cheap and keeps the last minute ready if the user switches styles live.
+  useEffect(
+    () =>
+      window.display.onTelemetry((t) => {
+        setTelemetry(t)
+        setHistories((prev) => {
+          const next = { ...prev }
+          for (const key of widgets) {
+            const def = getMetricDef(key)
+            if (def) next[key] = pushSample(prev[key] ?? [], def.getValue(t), HISTORY_LENGTH)
+          }
+          return next
+        })
+      }),
+    [widgets]
+  )
 
   const Row = style === 'gauges' ? GaugeRow : style === 'compact' ? CompactRow : BarRow
 
@@ -288,9 +368,18 @@ export function StatsZone({
       }}
     >
       <div style={listStyle}>
-        {widgets.map((key) => (
-          <Row key={key} telemetry={telemetry} metricKey={key} />
-        ))}
+        {widgets.map((key) =>
+          style === 'graph' ? (
+            <GraphRow
+              key={key}
+              telemetry={telemetry}
+              metricKey={key}
+              history={histories[key] ?? []}
+            />
+          ) : (
+            <Row key={key} telemetry={telemetry} metricKey={key} />
+          )
+        )}
       </div>
     </div>
   )

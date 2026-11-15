@@ -60,7 +60,7 @@ const zoneSourceSchema: z.ZodType<ZoneSource> = z.lazy(() =>
     z.object({
       type: z.literal('stats'),
       widgets: z.array(z.string()),
-      style: z.enum(['bars', 'gauges', 'compact'])
+      style: z.enum(['bars', 'gauges', 'compact', 'graph'])
     }),
     z.object({
       type: z.literal('camera'),
