@@ -85,10 +85,16 @@ and launch-at-login, so it's just running whenever the machine is.
 scenes or blank/unblank the display from a phone without walking back to the desk. Not exposed
 to the internet, and gated behind a token that regenerates on demand.
 
+**🖱️ Mouse & windows lock** — Keep the cursor (and optionally stray app windows) off the panel while you game: toggle with Ctrl+Alt+M, the tray menu, or the phone remote, or set per-game **App rules** that lock the mouse and/or switch scene automatically while a program is running. Windows only.
+
+**🌙 Dimming & burn-in care** — A software dimmer (optionally scheduled, e.g. 22:00–07:00) and a once-a-minute pixel shift for OLED panels.
+
+**💬 Messages to the panel** — Type a short message on the phone remote and it appears full-screen on the panel for a few seconds.
+
 **🧩 Scene management** — Rename, duplicate, or delete scenes and layouts from the UI, with a
 one-level undo for destructive deletes. A "Recent" quick-pick remembers previously-used media
 files so you're not always starting from the OS file dialog. Export/import the whole config
-(scenes, layouts, color profiles, triggers, schedule) as a single JSON file.
+(scenes, layouts, color profiles, triggers, schedule) as a single JSON file, or share a single scene as its own file.
 
 **🌗 Theming** — An accent-color picker and a light/dark toggle for the control app's own chrome
 (the display output itself always renders exactly what a scene is configured to show).
