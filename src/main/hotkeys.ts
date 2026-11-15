@@ -16,7 +16,8 @@ let lastSignature = ''
 export function updateHotkeys(
   config: AppConfig,
   onActivatePreset: (presetId: string) => void,
-  onSetMode: (mode: DisplayMode) => void
+  onSetMode: (mode: DisplayMode) => void,
+  onToggleMouseLock: () => void
 ): void {
   const presetIds = config.presets.slice(0, 9).map((p) => p.id)
   const signature = JSON.stringify({ enabled: config.app.hotkeysEnabled, presetIds })
@@ -32,6 +33,7 @@ export function updateHotkeys(
   globalShortcut.register('CommandOrControl+Alt+L', () => onSetMode('live'))
   globalShortcut.register('CommandOrControl+Alt+B', () => onSetMode('black'))
   globalShortcut.register('CommandOrControl+Alt+D', () => onSetMode('hidden'))
+  globalShortcut.register('CommandOrControl+Alt+M', () => onToggleMouseLock())
 }
 
 export function unregisterHotkeys(): void {

@@ -187,7 +187,8 @@ export const appConfigSchema: z.ZodType<AppConfig> = z.object({
     simulate: z.boolean(),
     mode: displayModeSchema,
     transitionMs: z.number().nonnegative().default(0),
-    lockMouse: z.boolean().default(false)
+    lockMouse: z.boolean().default(false),
+    keepWindowsOff: z.boolean().default(false)
   }),
   controlWindow: z.object({
     bounds: z
@@ -205,6 +206,17 @@ export const appConfigSchema: z.ZodType<AppConfig> = z.object({
   colorProfiles: z.array(colorProfileSchema),
   triggers: z.array(triggerSchema),
   schedule: z.array(scheduleEntrySchema).default([]),
+  appRules: z
+    .array(
+      z.object({
+        id: z.string(),
+        exe: z.string(),
+        lockMouse: z.boolean(),
+        presetId: z.string().nullable(),
+        enabled: z.boolean()
+      })
+    )
+    .default([]),
   scheduleTimeZone: z.string().optional(),
   recentMedia: z.array(z.string()).default([]),
   telemetry: z.object({
@@ -246,7 +258,8 @@ export const defaultConfig: AppConfig = {
     simulate: true,
     mode: 'live',
     transitionMs: 0,
-    lockMouse: false
+    lockMouse: false,
+    keepWindowsOff: false
   },
   controlWindow: {
     bounds: null
@@ -330,6 +343,7 @@ export const defaultConfig: AppConfig = {
   activePresetId: 'full-bleed-loop',
   triggers: [],
   schedule: [],
+  appRules: [],
   recentMedia: [],
   telemetry: {
     source: 'auto',

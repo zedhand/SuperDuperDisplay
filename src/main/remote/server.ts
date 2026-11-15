@@ -78,7 +78,8 @@ function buildStateMessage(config: AppConfig): string {
     type: 'state',
     presets: config.presets.map((p) => ({ id: p.id, name: p.name })),
     activePresetId: config.activePresetId,
-    mode: config.display.mode
+    mode: config.display.mode,
+    mouseLock: config.display.lockMouse
   })
 }
 
@@ -109,6 +110,8 @@ function renderRemotePage(): string {
   <div class="grid" id="presets"></div>
   <h2>Mode</h2>
   <div class="grid" id="modes"></div>
+  <h2>Mouse</h2>
+  <div class="grid" id="mouse"></div>
   <div id="status">Connecting…</div>
 <script>
 (function () {
@@ -117,6 +120,7 @@ function renderRemotePage(): string {
   var ws = new WebSocket(proto + '//' + location.host + '/ws?token=' + encodeURIComponent(token));
   var presetsEl = document.getElementById('presets');
   var modesEl = document.getElementById('modes');
+  var mouseEl = document.getElementById('mouse');
   var statusEl = document.getElementById('status');
   var MODES = ['live', 'black', 'hidden'];
 
@@ -147,6 +151,13 @@ function renderRemotePage(): string {
       btn.onclick = function () { ws.send(JSON.stringify({ type: 'setMode', mode: mode })); };
       modesEl.appendChild(btn);
     });
+
+    mouseEl.innerHTML = '';
+    var lock = document.createElement('button');
+    lock.textContent = state.mouseLock ? 'Mouse locked out of panel: ON' : 'Mouse locked out of panel: OFF';
+    if (state.mouseLock) lock.className = 'active';
+    lock.onclick = function () { ws.send(JSON.stringify({ type: 'setMouseLock', on: !state.mouseLock })); };
+    mouseEl.appendChild(lock);
   }
 })();
 </script>
@@ -167,15 +178,18 @@ export class RemoteServer {
   private getConfig: () => AppConfig
   private onSetPreset: (presetId: string) => void
   private onSetMode: (mode: DisplayMode) => void
+  private onSetMouseLock: (on: boolean) => void
 
   constructor(
     getConfig: () => AppConfig,
     onSetPreset: (presetId: string) => void,
-    onSetMode: (mode: DisplayMode) => void
+    onSetMode: (mode: DisplayMode) => void,
+    onSetMouseLock: (on: boolean) => void
   ) {
     this.getConfig = getConfig
     this.onSetPreset = onSetPreset
     this.onSetMode = onSetMode
+    this.onSetMouseLock = onSetMouseLock
   }
 
   get running(): boolean {
@@ -257,6 +271,8 @@ export class RemoteServer {
             MODES.includes(msg.mode as DisplayMode)
           ) {
             this.onSetMode(msg.mode as DisplayMode)
+          } else if (type === 'setMouseLock' && 'on' in msg && typeof msg.on === 'boolean') {
+            this.onSetMouseLock(msg.on)
           }
         })
 

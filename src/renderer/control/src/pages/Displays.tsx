@@ -171,7 +171,21 @@ export function DisplaysPage(): ReactElement {
         </label>
         <p className="mt-2 text-xs text-[var(--text-4)]">
           Stops the cursor from wandering onto the panel (handy in games). Windows only; has no
-          effect on the simulated screen.
+          effect on the simulated screen. Toggle it anywhere with Ctrl+Alt+M (with hotkeys enabled),
+          the tray menu, or the phone remote; Settings → App rules turns it on automatically while a
+          game runs.
+        </p>
+        <label className="mt-3 flex w-fit cursor-pointer items-center gap-3 text-sm text-[var(--text-2)]">
+          <input
+            type="checkbox"
+            checked={display.keepWindowsOff}
+            onChange={(e) => patch({ display: { ...display, keepWindowsOff: e.target.checked } })}
+          />
+          Keep other windows off the target display
+        </label>
+        <p className="mt-2 text-xs text-[var(--text-4)]">
+          Moves any app window that lands on the panel back to your main monitor. Paused in Desktop
+          mode, where the panel is meant to behave like a normal monitor.
         </p>
       </section>
 

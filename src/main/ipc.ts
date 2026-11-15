@@ -41,8 +41,16 @@ export function broadcastConfig(ctx: IpcContext, config: AppConfig): void {
     (mode) => {
       ctx.displayManager.applyMode(mode)
       broadcastConfig(ctx, setConfig({ display: { ...getConfig().display, mode } }))
-    }
+    },
+    () => setMouseLock(ctx, !getConfig().display.lockMouse)
   )
+}
+
+/** Single entry point for turning the mouse lock on/off from anywhere (hotkey, tray, remote, app rules). */
+export function setMouseLock(ctx: IpcContext, on: boolean): void {
+  const next = setConfig({ display: { ...getConfig().display, lockMouse: on } })
+  ctx.displayManager.retarget()
+  broadcastConfig(ctx, next)
 }
 
 export function broadcastDisplays(ctx: IpcContext): void {

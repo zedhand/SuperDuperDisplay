@@ -9,6 +9,7 @@ export class TrayManager {
   private controlWin: BrowserWindow
   private setActivePreset: (id: string) => void
   private setMode: (mode: DisplayMode) => void
+  private setMouseLock: (on: boolean) => void
   private onQuit: () => void
 
   constructor(
@@ -16,11 +17,13 @@ export class TrayManager {
     controlWin: BrowserWindow,
     setActivePreset: (id: string) => void,
     setMode: (mode: DisplayMode) => void,
+    setMouseLock: (on: boolean) => void,
     onQuit: () => void
   ) {
     this.controlWin = controlWin
     this.setActivePreset = setActivePreset
     this.setMode = setMode
+    this.setMouseLock = setMouseLock
     this.onQuit = onQuit
     this.tray = new Tray(iconPath)
     this.tray.setToolTip('SuperDuperDisplay')
@@ -48,6 +51,12 @@ export class TrayManager {
           checked: config.display.mode === mode,
           click: () => this.setMode(mode)
         }))
+      },
+      {
+        label: 'Lock mouse out of panel',
+        type: 'checkbox',
+        checked: config.display.lockMouse,
+        click: (item) => this.setMouseLock(item.checked)
       },
       { type: 'separator' },
       { label: 'Quit', click: () => this.onQuit() }

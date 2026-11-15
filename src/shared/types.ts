@@ -131,6 +131,15 @@ export interface Preset {
   fit: FitMode
 }
 
+/** While a process named `exe` is running: optionally lock the mouse out of the panel and/or switch scene. Both are undone when it exits. */
+export interface AppRule {
+  id: string
+  exe: string // process image name, e.g. "eldenring.exe" (".exe" optional, case-insensitive)
+  lockMouse: boolean
+  presetId: string | null // null = leave the scene alone
+  enabled: boolean
+}
+
 export interface ScheduleEntry {
   id: string
   name: string
@@ -220,6 +229,7 @@ export interface AppConfig {
     mode: DisplayMode
     transitionMs: number // crossfade duration when switching presets; 0 = instant cut (default)
     lockMouse: boolean // keep the mouse cursor off the target display (Windows only)
+    keepWindowsOff: boolean // move app windows that land on the target display back to the main one, except in Desktop mode (Windows only)
   }
   controlWindow: {
     bounds: { x?: number; y?: number; width: number; height: number } | null
@@ -230,6 +240,7 @@ export interface AppConfig {
   colorProfiles: ColorProfile[]
   triggers: Trigger[]
   schedule: ScheduleEntry[]
+  appRules: AppRule[]
   scheduleTimeZone?: string // IANA zone the schedule's times are read in; unset = system zone
   recentMedia: string[] // MRU list of picked file paths, most recent first — for the "Recent" quick-pick instead of the OS file dialog every time
   telemetry: {
