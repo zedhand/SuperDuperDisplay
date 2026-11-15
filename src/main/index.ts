@@ -20,6 +20,7 @@ import { NowPlayingService } from './media/nowPlaying'
 import { TriggerEngine } from './triggerEngine'
 import { Scheduler } from './scheduler'
 import { CursorGuard } from './cursorGuard'
+import { BrightnessManager } from './brightness'
 import { AppWatcher } from './appWatcher'
 import { PowerManager } from './power'
 import { TrayManager } from './tray'
@@ -69,6 +70,8 @@ if (!gotLock) {
     const displayManager = new DisplayManager(displayWin, getConfig)
     const cursorGuard = new CursorGuard(getConfig)
     displayManager.setCursorGuard(cursorGuard)
+    const brightnessManager = new BrightnessManager(getConfig)
+    displayManager.setBrightnessManager(brightnessManager)
     displayManager.retarget()
     displayManager.applyMode(config.display.mode)
 
@@ -146,6 +149,7 @@ if (!gotLock) {
       controlWin,
       displayWin,
       displayManager,
+      brightnessManager,
       folderSyncManager,
       telemetryService,
       trayManager,
@@ -203,6 +207,15 @@ if (!gotLock) {
       if (BrowserWindow.getAllWindows().length === 0) {
         controlWin = createControlWindow(getConfig())
       }
+    })
+
+    // Put the monitor's own brightness back before exiting (async, so hold the quit until it's done).
+    let brightnessRestored = false
+    app.on('before-quit', (event) => {
+      if (brightnessRestored || !brightnessManager.hasOriginal()) return
+      event.preventDefault()
+      brightnessRestored = true
+      brightnessManager.restore().finally(() => app.quit())
     })
 
     app.on('before-quit', () => {

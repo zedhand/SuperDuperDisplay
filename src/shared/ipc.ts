@@ -39,6 +39,7 @@ export const IpcChannel = {
   DisplayTarget: 'display:target',
   DisplayMode: 'display:mode',
   DisplayIdentify: 'display:identify',
+  DisplayBrightnessProbe: 'display:brightness-probe',
 
   MediaPickFolder: 'media:pickFolder',
   MediaPickFile: 'media:pickFile',
@@ -93,6 +94,10 @@ export interface IpcInvokeMap {
   [IpcChannel.ConfigImport]: {
     args: []
     result: { config: AppConfig } | { error: string } | null
+  }
+  [IpcChannel.DisplayBrightnessProbe]: {
+    args: []
+    result: { supported: boolean; percent?: number; error?: string }
   }
   [IpcChannel.SceneExport]: { args: [presetId: string]; result: { filePath: string } | null }
   [IpcChannel.SceneImport]: { args: []; result: { error: string } | { ok: true } | null }

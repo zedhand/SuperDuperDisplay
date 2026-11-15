@@ -9,6 +9,7 @@ import { IMAGE_EXTENSIONS, VIDEO_EXTENSIONS } from '@shared/media'
 import { getConfig, replaceConfig, setConfig } from './store'
 import { updateHotkeys } from './hotkeys'
 import { buildSceneBundle, planSceneImport } from '@shared/sceneBundle'
+import type { BrightnessManager } from './brightness'
 import type { DisplayManager } from './displayManager'
 import type { FolderSyncManager } from './media/folderSync'
 import type { TelemetryService } from './telemetry'
@@ -24,6 +25,7 @@ export interface IpcContext {
   controlWin: BrowserWindow
   displayWin: BrowserWindow
   displayManager: DisplayManager
+  brightnessManager: BrightnessManager
   folderSyncManager: FolderSyncManager
   telemetryService: TelemetryService
   trayManager: TrayManager
@@ -164,6 +166,8 @@ export function registerIpcHandlers(ctx: IpcContext): void {
     await writeFile(result.filePath, JSON.stringify(getConfig(), null, 2), 'utf8')
     return { filePath: result.filePath }
   })
+
+  ipcMain.handle(IpcChannel.DisplayBrightnessProbe, () => ctx.brightnessManager.probe())
 
   ipcMain.handle(IpcChannel.SceneExport, async (_event, presetId: string) => {
     const bundle = buildSceneBundle(getConfig(), presetId)
