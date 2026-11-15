@@ -89,6 +89,25 @@ export type ZoneSource =
       scale: number // 0.5-2, multiplies the auto-fit font size
       bold: boolean
     }
+  | {
+      type: 'timer'
+      mode: 'countdown' | 'countup' | 'session' // countdown to / count up from `target`; session = time since the app started
+      target?: string // datetime-local ("2026-12-25T09:00"), local time; unused for 'session'
+      label: string
+      color: string
+      align: 'left' | 'center' | 'right'
+    }
+  | {
+      type: 'data'
+      url: string // any JSON endpoint (Home Assistant, Discord invite API, Twitch Helix, your own...)
+      headers: string // "Name: value" per line, e.g. "Authorization: Bearer ..." — stored in the config in plain text
+      path: string // where the value is in the JSON, e.g. "state" or "data.0.viewer_count"
+      label: string
+      unit: string
+      color: string
+      align: 'left' | 'center' | 'right'
+      intervalSec: number
+    }
   | { type: 'color'; mode: 'solid' | 'gradient'; colorA: string; colorB: string; angle: number } // angle in degrees, gradient only
   | { type: 'layers'; items: LayerItem[] }
   | { type: 'blank' }
@@ -234,6 +253,7 @@ export interface AppConfig {
     transitionMs: number // crossfade duration when switching presets; 0 = instant cut (default)
     lockMouse: boolean // keep the mouse cursor off the target display (Windows only)
     dim: { level: number; scheduled: boolean; from: string; to: string } // black overlay, level in percent; if `scheduled`, only between from..to (HH:MM, local, may wrap midnight)
+    hardwareBrightness: { enabled: boolean; level: number } // real backlight over DDC/CI (Windows), 0-100; the original level is restored when turned off or on quit
     pixelShift: boolean // nudge the whole picture a couple of pixels every minute (burn-in protection)
     keepWindowsOff: boolean // move app windows that land on the target display back to the main one, except in Desktop mode (Windows only)
   }

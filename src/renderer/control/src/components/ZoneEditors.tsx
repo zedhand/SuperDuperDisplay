@@ -4,6 +4,7 @@ import type { StatsStyle, ZoneSource } from '@shared/types'
 import { METRICS } from '@shared/telemetryMetrics'
 import { mediaKindFromPath, toMediaUrl } from '@shared/media'
 import { TIME_ZONE_OPTIONS } from '@shared/timeZone'
+import { DataEditor, TimerEditor } from './TimerDataEditors'
 import { defaultMediaSource, FIT_MODES, STATS_STYLES, TYPE_SWITCH_OPTIONS } from './zoneDefaults'
 
 /**
@@ -1150,6 +1151,10 @@ export function ZoneSourceFields({
           onChange={(patch) => onChange({ ...source, ...patch })}
         />
       )
+    case 'timer':
+      return <TimerEditor source={source} onChange={(patch) => onChange({ ...source, ...patch })} />
+    case 'data':
+      return <DataEditor source={source} onChange={(patch) => onChange({ ...source, ...patch })} />
     case 'text':
       return (
         <TextEditor

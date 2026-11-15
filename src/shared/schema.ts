@@ -111,6 +111,25 @@ const zoneSourceSchema: z.ZodType<ZoneSource> = z.lazy(() =>
       bold: z.boolean()
     }),
     z.object({
+      type: z.literal('timer'),
+      mode: z.enum(['countdown', 'countup', 'session']),
+      target: z.string().optional(),
+      label: z.string(),
+      color: z.string(),
+      align: z.enum(['left', 'center', 'right'])
+    }),
+    z.object({
+      type: z.literal('data'),
+      url: z.string(),
+      headers: z.string().default(''),
+      path: z.string(),
+      label: z.string(),
+      unit: z.string().default(''),
+      color: z.string(),
+      align: z.enum(['left', 'center', 'right']),
+      intervalSec: z.number().min(5).default(30)
+    }),
+    z.object({
       type: z.literal('color'),
       mode: z.enum(['solid', 'gradient']),
       colorA: z.string(),
@@ -197,7 +216,10 @@ export const appConfigSchema: z.ZodType<AppConfig> = z.object({
         to: z.string()
       })
       .default({ level: 0, scheduled: false, from: '22:00', to: '07:00' }),
-    pixelShift: z.boolean().default(false)
+    pixelShift: z.boolean().default(false),
+    hardwareBrightness: z
+      .object({ enabled: z.boolean(), level: z.number().min(0).max(100) })
+      .default({ enabled: false, level: 100 })
   }),
   controlWindow: z.object({
     bounds: z
@@ -270,7 +292,8 @@ export const defaultConfig: AppConfig = {
     lockMouse: false,
     keepWindowsOff: false,
     dim: { level: 0, scheduled: false, from: '22:00', to: '07:00' },
-    pixelShift: false
+    pixelShift: false,
+    hardwareBrightness: { enabled: false, level: 100 }
   },
   controlWindow: {
     bounds: null

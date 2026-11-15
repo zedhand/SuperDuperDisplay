@@ -27,6 +27,10 @@ const controlApi = {
     import: (): Promise<{ config: AppConfig } | { error: string } | null> =>
       ipcRenderer.invoke(IpcChannel.ConfigImport)
   },
+  brightness: {
+    probe: (): Promise<{ supported: boolean; percent?: number; error?: string }> =>
+      ipcRenderer.invoke(IpcChannel.DisplayBrightnessProbe)
+  },
   scene: {
     export: (presetId: string): Promise<{ filePath: string } | null> =>
       ipcRenderer.invoke(IpcChannel.SceneExport, presetId),
@@ -84,6 +88,14 @@ const controlApi = {
   calendar: {
     getAgenda: (icsUrl: string): Promise<{ events: CalendarEvent[]; error?: string }> =>
       ipcRenderer.invoke(IpcChannel.CalendarAgenda, icsUrl)
+  },
+  data: {
+    get: (
+      url: string,
+      headers: string,
+      path: string
+    ): Promise<{ value: string | null; error?: string }> =>
+      ipcRenderer.invoke(IpcChannel.DataGet, url, headers, path)
   },
   weather: {
     get: (

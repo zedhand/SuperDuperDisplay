@@ -20,6 +20,7 @@ export function DisplaysPage(): ReactElement {
   const patch = useConfigStore((s) => s.patch)
   const [displays, setDisplays] = useState<DisplayRow[]>([])
   const [identifying, setIdentifying] = useState(false)
+  const [ddcMessage, setDdcMessage] = useState<string | null>(null)
 
   useEffect(() => {
     window.control.displays.list().then(setDisplays)
@@ -57,6 +58,27 @@ export function DisplaysPage(): ReactElement {
       match: display.match,
       rotation,
       simulate: display.simulate
+    })
+  }
+
+  /** Probes first so we can say why it won't work instead of silently doing nothing. */
+  async function toggleHardwareBrightness(enabled: boolean): Promise<void> {
+    if (!config) return
+    if (enabled) {
+      const probe = await window.control.brightness.probe()
+      if (!probe.supported) {
+        setDdcMessage(probe.error ?? 'This display doesn’t support brightness control.')
+        return
+      }
+      setDdcMessage(`Supported — currently ${probe.percent}%.`)
+    } else {
+      setDdcMessage(null)
+    }
+    patch({
+      display: {
+        ...config.display,
+        hardwareBrightness: { ...config.display.hardwareBrightness, enabled }
+      }
     })
   }
 
@@ -240,6 +262,43 @@ export function DisplaysPage(): ReactElement {
         <p className="mt-2 text-xs text-[var(--text-4)]">
           A software dimmer over the picture (works on any panel). Handy at night, or to cut glare
           from a case window.
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-[var(--text-2)]">
+          <label className="flex cursor-pointer items-center gap-3">
+            <input
+              type="checkbox"
+              checked={display.hardwareBrightness.enabled}
+              onChange={(e) => toggleHardwareBrightness(e.target.checked)}
+            />
+            Panel backlight (DDC/CI)
+          </label>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            disabled={!display.hardwareBrightness.enabled}
+            value={display.hardwareBrightness.level}
+            onChange={(e) =>
+              patch({
+                display: {
+                  ...display,
+                  hardwareBrightness: {
+                    ...display.hardwareBrightness,
+                    level: Number(e.target.value)
+                  }
+                }
+              })
+            }
+          />
+          <span className="w-10 text-xs text-[var(--text-4)]">
+            {display.hardwareBrightness.level}%
+          </span>
+        </div>
+        {ddcMessage && <p className="mt-1 text-xs text-[var(--text-4)]">{ddcMessage}</p>}
+        <p className="mt-2 text-xs text-[var(--text-4)]">
+          Changes the monitor&apos;s real brightness, for panels that support it (many small case
+          screens don&apos;t — you&apos;ll be told). The original level is put back when you turn
+          this off or quit.
         </p>
         <label className="mt-3 flex w-fit cursor-pointer items-center gap-3 text-sm text-[var(--text-2)]">
           <input

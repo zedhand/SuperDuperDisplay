@@ -9,6 +9,8 @@ import { StatsZone } from './StatsZone'
 import { CameraZone } from './CameraZone'
 import { RtspZone } from './RtspZone'
 import { ClockZone } from './ClockZone'
+import { TimerZone } from './TimerZone'
+import { DataZone } from './DataZone'
 import { CalendarZone } from './CalendarZone'
 import { NowPlayingZone } from './NowPlayingZone'
 import { WeatherZone } from './WeatherZone'
@@ -142,6 +144,30 @@ export function ZoneRenderer({
     case 'nowplaying':
       if (isPreview) return <ZonePlaceholder label="Now playing" />
       return <NowPlayingZone color={source.color} align={source.align} />
+    case 'timer':
+      return (
+        <TimerZone
+          mode={source.mode}
+          target={source.target}
+          label={source.label}
+          color={source.color}
+          align={source.align}
+        />
+      )
+    case 'data':
+      if (isPreview) return <ZonePlaceholder label={source.label || 'Data'} />
+      return (
+        <DataZone
+          url={source.url}
+          headers={source.headers}
+          path={source.path}
+          label={source.label}
+          unit={source.unit}
+          color={source.color}
+          align={source.align}
+          intervalSec={source.intervalSec}
+        />
+      )
     case 'text':
       return (
         <TextZone

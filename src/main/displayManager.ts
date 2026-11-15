@@ -2,6 +2,7 @@ import type { BrowserWindow } from 'electron'
 import type { AppConfig, DisplayInfo } from '@shared/types'
 import { getSimulatorBounds, listDisplays, matchDisplay } from './displays'
 import type { CursorGuard } from './cursorGuard'
+import type { BrightnessManager } from './brightness'
 import { setDisplayWindowBounds, type DisplayWindowBounds } from './windows/displayWindow'
 
 export interface DisplayTargetResult {
@@ -42,6 +43,7 @@ export class DisplayManager {
   private getConfig: () => AppConfig
   private lastResult: DisplayTargetResult | null = null
   private cursorGuard: CursorGuard | null = null
+  private brightness: BrightnessManager | null = null
 
   constructor(win: BrowserWindow, getConfig: () => AppConfig) {
     this.win = win
@@ -52,11 +54,16 @@ export class DisplayManager {
     this.cursorGuard = guard
   }
 
+  setBrightnessManager(manager: BrightnessManager): void {
+    this.brightness = manager
+  }
+
   retarget(): DisplayTargetResult {
     const result = resolveDisplayTarget(this.getConfig(), listDisplays())
     setDisplayWindowBounds(this.win, result.bounds)
     this.lastResult = result
     this.cursorGuard?.apply()
+    this.brightness?.apply()
     return result
   }
 
