@@ -34,7 +34,10 @@ describe('findActiveRule', () => {
 })
 
 describe('AppWatcher', () => {
-  function setup(config: AppConfig) {
+  function setup(config: AppConfig): {
+    w: AppWatcher
+    actions: { setMouseLock: ReturnType<typeof vi.fn>; setPreset: ReturnType<typeof vi.fn> }
+  } {
     const actions = { setMouseLock: vi.fn(), setPreset: vi.fn() }
     return { w: new AppWatcher(() => config, actions), actions }
   }
