@@ -46,7 +46,16 @@ export const METRICS: MetricDef[] = [
     max: 100,
     getValue: (t) =>
       t.ramUsedMB != null && t.ramTotalMB ? (t.ramUsedMB / t.ramTotalMB) * 100 : null
-  }
+  },
+  { key: 'diskUsedPct', label: 'Disk Used', unit: '%', max: 100, getValue: (t) => t.diskUsedPct },
+  {
+    key: 'netDownMbps',
+    label: 'Net Down',
+    unit: 'Mbps',
+    max: 1000,
+    getValue: (t) => t.netDownMbps
+  },
+  { key: 'netUpMbps', label: 'Net Up', unit: 'Mbps', max: 1000, getValue: (t) => t.netUpMbps }
 ]
 
 const METRICS_BY_KEY = new Map(METRICS.map((m) => [m.key, m]))

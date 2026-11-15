@@ -217,6 +217,9 @@ export interface Telemetry {
   vramTotalMB: number | null
   ramUsedMB: number | null
   ramTotalMB: number | null
+  netDownMbps: number | null // total across active interfaces
+  netUpMbps: number | null
+  diskUsedPct: number | null // system drive
   source: 'lhm' | 'nvidia-smi' | 'systeminformation' | 'mixed' | 'none'
 }
 

@@ -43,6 +43,9 @@ async function collectTelemetry(options: TelemetryOptions): Promise<Telemetry> {
     vramTotalMB: nvidia?.vramTotalMB ?? null,
     ramUsedMB: sysinfo.ramUsedMB,
     ramTotalMB: sysinfo.ramTotalMB,
+    netDownMbps: sysinfo.netDownMbps ?? null,
+    netUpMbps: sysinfo.netUpMbps ?? null,
+    diskUsedPct: sysinfo.diskUsedPct ?? null,
     source: sourcesUsed.length > 1 ? 'mixed' : (sourcesUsed[0] as Telemetry['source'])
   }
 }
