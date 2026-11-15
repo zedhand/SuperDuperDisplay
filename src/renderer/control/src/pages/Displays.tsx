@@ -160,6 +160,22 @@ export function DisplaysPage(): ReactElement {
       </section>
 
       <section>
+        <h2 className="mb-3 text-lg font-semibold text-[var(--text-1)]">Mouse</h2>
+        <label className="flex w-fit cursor-pointer items-center gap-3 text-sm text-[var(--text-2)]">
+          <input
+            type="checkbox"
+            checked={display.lockMouse}
+            onChange={(e) => patch({ display: { ...display, lockMouse: e.target.checked } })}
+          />
+          Lock mouse out of the target display
+        </label>
+        <p className="mt-2 text-xs text-[var(--text-4)]">
+          Stops the cursor from wandering onto the panel (handy in games). Windows only; has no
+          effect on the simulated screen.
+        </p>
+      </section>
+
+      <section>
         <button
           onClick={identify}
           disabled={identifying}

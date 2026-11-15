@@ -1,6 +1,7 @@
 import type { BrowserWindow } from 'electron'
 import type { AppConfig, DisplayInfo } from '@shared/types'
 import { getSimulatorBounds, listDisplays, matchDisplay } from './displays'
+import type { CursorGuard } from './cursorGuard'
 import { setDisplayWindowBounds, type DisplayWindowBounds } from './windows/displayWindow'
 
 export interface DisplayTargetResult {
@@ -40,16 +41,22 @@ export class DisplayManager {
   private win: BrowserWindow
   private getConfig: () => AppConfig
   private lastResult: DisplayTargetResult | null = null
+  private cursorGuard: CursorGuard | null = null
 
   constructor(win: BrowserWindow, getConfig: () => AppConfig) {
     this.win = win
     this.getConfig = getConfig
   }
 
+  setCursorGuard(guard: CursorGuard): void {
+    this.cursorGuard = guard
+  }
+
   retarget(): DisplayTargetResult {
     const result = resolveDisplayTarget(this.getConfig(), listDisplays())
     setDisplayWindowBounds(this.win, result.bounds)
     this.lastResult = result
+    this.cursorGuard?.apply()
     return result
   }
 

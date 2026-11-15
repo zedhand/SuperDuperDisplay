@@ -18,6 +18,7 @@ import { TelemetryService } from './telemetry'
 import { NowPlayingService } from './media/nowPlaying'
 import { TriggerEngine } from './triggerEngine'
 import { Scheduler } from './scheduler'
+import { CursorGuard } from './cursorGuard'
 import { PowerManager } from './power'
 import { TrayManager } from './tray'
 import { RtspManager } from './camera/rtsp'
@@ -64,6 +65,8 @@ if (!gotLock) {
     const displayWin = createDisplayWindow(initialBounds)
 
     const displayManager = new DisplayManager(displayWin, getConfig)
+    const cursorGuard = new CursorGuard(getConfig)
+    displayManager.setCursorGuard(cursorGuard)
     displayManager.retarget()
     displayManager.applyMode(config.display.mode)
 
@@ -202,6 +205,7 @@ if (!gotLock) {
       remoteServer.stop()
       unregisterHotkeys()
       scheduler.stop()
+      cursorGuard.stop()
     })
   })
 

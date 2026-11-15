@@ -186,7 +186,8 @@ export const appConfigSchema: z.ZodType<AppConfig> = z.object({
     rotation: rotationSchema,
     simulate: z.boolean(),
     mode: displayModeSchema,
-    transitionMs: z.number().nonnegative().default(0)
+    transitionMs: z.number().nonnegative().default(0),
+    lockMouse: z.boolean().default(false)
   }),
   controlWindow: z.object({
     bounds: z
@@ -244,7 +245,8 @@ export const defaultConfig: AppConfig = {
     rotation: 0,
     simulate: true,
     mode: 'live',
-    transitionMs: 0
+    transitionMs: 0,
+    lockMouse: false
   },
   controlWindow: {
     bounds: null

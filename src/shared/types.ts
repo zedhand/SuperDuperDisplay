@@ -219,6 +219,7 @@ export interface AppConfig {
     simulate: boolean
     mode: DisplayMode
     transitionMs: number // crossfade duration when switching presets; 0 = instant cut (default)
+    lockMouse: boolean // keep the mouse cursor off the target display (Windows only)
   }
   controlWindow: {
     bounds: { x?: number; y?: number; width: number; height: number } | null
