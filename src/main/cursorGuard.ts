@@ -25,15 +25,24 @@ public class CG {
     Thread t = new Thread(Run); t.IsBackground = true; t.Start();
   }
   static void Run() {
+    int lx = int.MinValue, ly = int.MinValue; bool have = false;
     while (true) {
       Thread.Sleep(4);
-      if (!On) continue;
+      if (!On) { have = false; continue; }
       PT p; if (!GetCursorPos(out p)) continue;
-      if (p.X < L || p.X >= R || p.Y < T || p.Y >= B) continue;
-      int dl = p.X - L, dr = R - 1 - p.X, dt = p.Y - T, db = B - 1 - p.Y;
-      int m = Math.Min(Math.Min(dl, dr), Math.Min(dt, db));
-      int nx = p.X, ny = p.Y;
-      if (m == dl) nx = L - 1; else if (m == dr) nx = R; else if (m == dt) ny = T - 1; else ny = B;
+      if (p.X < L || p.X >= R || p.Y < T || p.Y >= B) { lx = p.X; ly = p.Y; have = true; continue; }
+      int nx, ny;
+      if (have) {
+        // Push back out the side the cursor came in from (nearest-edge can pick the desktop's outer edge, which Windows clamps back inside).
+        nx = p.X; ny = p.Y;
+        if (lx < L) nx = L - 1; else if (lx >= R) nx = R;
+        else if (ly < T) ny = T - 1; else ny = B;
+      } else {
+        int dl = p.X - L, dr = R - 1 - p.X, dt = p.Y - T, db = B - 1 - p.Y;
+        int m = Math.Min(Math.Min(dl, dr), Math.Min(dt, db));
+        nx = p.X; ny = p.Y;
+        if (m == dl) nx = L - 1; else if (m == dr) nx = R; else if (m == dt) ny = T - 1; else ny = B;
+      }
       SetCursorPos(nx, ny);
     }
   }
