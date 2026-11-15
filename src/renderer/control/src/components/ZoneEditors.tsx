@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactElement } from 'react'
 import { File, FolderOpen, Maximize2 } from 'lucide-react'
-import type { ZoneSource } from '@shared/types'
+import type { StatsStyle, ZoneSource } from '@shared/types'
 import { METRICS } from '@shared/telemetryMetrics'
 import { mediaKindFromPath, toMediaUrl } from '@shared/media'
 import { TIME_ZONE_OPTIONS } from '@shared/timeZone'
@@ -191,8 +191,8 @@ export function StatsEditor({
   onChange
 }: {
   widgets: string[]
-  style: 'bars' | 'gauges' | 'compact'
-  onChange: (patch: { widgets?: string[]; style?: 'bars' | 'gauges' | 'compact' }) => void
+  style: StatsStyle
+  onChange: (patch: { widgets?: string[]; style?: StatsStyle }) => void
 }): ReactElement {
   function toggleWidget(key: string): void {
     const next = widgets.includes(key) ? widgets.filter((w) => w !== key) : [...widgets, key]

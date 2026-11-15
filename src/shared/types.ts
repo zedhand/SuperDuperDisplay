@@ -1,6 +1,7 @@
 export type Rotation = 0 | 90 | 180 | 270
 export type FitMode = 'cover' | 'contain' | 'stretch'
 export type ContainBackground = 'solid' | 'blur'
+export type StatsStyle = 'bars' | 'gauges' | 'compact' | 'graph'
 export type DisplayMode = 'live' | 'black' | 'hidden'
 
 export interface DisplayMatch {
@@ -47,7 +48,7 @@ export type ZoneSource =
     }
   | { type: 'youtube'; url: string; volume: number } // 0-1, defaults to 0
   | { type: 'web'; url: string; css?: string; volume: number } // 0-1, defaults to 0; a webview can only be muted/unmuted (0 vs >0), not set to a partial level
-  | { type: 'stats'; widgets: string[]; style: 'bars' | 'gauges' | 'compact' }
+  | { type: 'stats'; widgets: string[]; style: StatsStyle }
   | { type: 'camera'; deviceId?: string; rtspUrl?: string }
   | {
       type: 'clock'
